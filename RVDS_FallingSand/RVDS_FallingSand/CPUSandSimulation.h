@@ -2,25 +2,25 @@
 #define CPUSANDSIMULATION_H
 
 #include "ISandSimulation.h"
+#include "Grid.h"
 #include <vector>
 #include <random>
+#include <memory>
 
 class CPUSandSimulation final : public ISandSimulation
 {
 public:
-	CPUSandSimulation(size_t width, size_t height);
+
+	CPUSandSimulation(const GridInfo& gridInfo, Window* window);
 	~CPUSandSimulation() override = default;
 
-	void Update() override;
-	void Render(SDL_Surface* surface) const override;
-	void PlaceParticle(size_t x, size_t y) override;
+	void Update(float deltaTime) override;
+	void Render() const override;
+	void PlaceParticle(size_t x, size_t y, std::unique_ptr<Element>&& element) override;
 	void ProcessSandParticle(int x, int y, std::mt19937& gen, std::uniform_int_distribution<>& dist);
 private:
-	size_t m_Width{};
-	size_t m_Height{};
-
-	std::vector<std::vector<int>> m_Grid{};
-	std::random_device m_rd;
+	std::unique_ptr<Grid> m_pGrid{};
+	Window* m_pWindow{};
 };
 
 #endif // !CPUSANDSIMULATION_H

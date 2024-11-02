@@ -4,32 +4,41 @@
 #include "CPUSandSimulation.h"
 
 Game::Game()
-    : m_window(nullptr), m_isRunning(true), m_BrushSize(1)
+    : m_pWindow(nullptr), m_IsRunning(true), m_BrushSize(1)
 {
-    m_window = new Window("RVDS - Falling Sand Simulator", 640, 480);
-    if (!m_window->Init())
+    m_pWindow = new Window("RVDS - Falling Sand Simulator", 1280, 720);
+    if (!m_pWindow->Init())
     {
         std::cerr << "Failed to initialize window." << std::endl;
-        m_isRunning = false;
+        m_IsRunning = false;
     }
 
+    // TODO: fix non ratio 1:1 grid!!
     // Register the CPU-based sand simulation as the default
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(640, 480));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 20}, 48, 72, 10 }, m_pWindow));
 }
 
 Game::~Game()
 {
-    delete m_window;
+    delete m_pWindow;
 }
 
 void Game::Run()
 {
     // Main game loop
-    while (m_isRunning)
+    while (m_IsRunning)
     {
+
         ProcessInput();  // Process user inputs and events
-        Update();        // Game logic update
-        Render();        // Render the window
+
+        // Calculate delta time
+        auto currentTime = std::chrono::steady_clock::now();
+        std::chrono::duration<float> elapsed = currentTime - m_LastTime;
+        float deltaTime = elapsed.count();
+        m_LastTime = currentTime;
+
+        Update(deltaTime);  // Game logic update
+        Render();           // Render the window
     }
 }
 
@@ -40,14 +49,14 @@ void Game::ProcessInput()
     {
         if (e.type == SDL_QUIT)  // Window close event
         {
-            m_isRunning = false;
+            m_IsRunning = false;
         }
         if (e.type == SDL_KEYDOWN)
         {
             switch (e.key.keysym.sym)
             {
             case SDLK_ESCAPE:
-                m_isRunning = false;
+                m_IsRunning = false;
                 break;
             // Increase brush size
             case SDLK_UP:
@@ -92,9 +101,9 @@ void Game::ProcessInput()
                     size_t brushY = gridY + dy;
 
                     // Place a particle if within grid bounds
-                    if (brushX < m_window->GetWidth() && brushY < m_window->GetHeight())
+                    if (brushX < m_pWindow->GetColumns() && brushY < m_pWindow->GetRows())
                     {
-                        ServiceLocator::GetSandSimulator().PlaceParticle(brushX, brushY);
+                        //ServiceLocator::GetSandSimulator().PlaceParticle(brushX, brushY, std::make_unique<E_Sand>());
                     }
                 }
             }
@@ -102,17 +111,17 @@ void Game::ProcessInput()
     }
 }
 
-void Game::Update()
+void Game::Update(float deltaTime)
 {
     // Game logic update can be implemented here
-    ServiceLocator::GetSandSimulator().Update();
+    ServiceLocator::GetSandSimulator().Update(deltaTime);
 }
 
 void Game::Render() const
 {
-    m_window->Clear();  // Clear window to a specific color
+    m_pWindow->Clear();  // Clear window to a specific color
 
-    ServiceLocator::GetSandSimulator().Render(m_window->GetSurface());
+    ServiceLocator::GetSandSimulator().Render();
 
-    m_window->Update(); // Render the updated content
+    m_pWindow->Update(); // Render the updated content
 }

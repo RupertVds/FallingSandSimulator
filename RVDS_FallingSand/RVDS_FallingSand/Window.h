@@ -2,33 +2,25 @@
 #define WINDOW_H
 
 #include <SDL.h>
-#include <string>
-#include <glad\glad.h>
+#include <iostream>
 
-class Window
-{
+class Window {
 public:
     Window(const std::string& title, int width, int height);
     ~Window();
-
     bool Init();
     void Clear() const;
     void Update() const;
-
-    SDL_Window* GetWindow() const { return m_window; }
-    SDL_Surface* GetSurface() const { return m_surface; }
-    int GetWidth() const { return m_width; };
-    int GetHeight() const { return m_height; };
+    SDL_Renderer* GetRenderer() const { return m_pRenderer; }
+    int GetColumns() const { return m_Width; }
+    int GetRows() const { return m_Height; }
 
 private:
-    std::string m_title;
-    int m_width;
-    int m_height;
-
-    SDL_Window* m_window;
-    SDL_Surface* m_surface;
-
-
+    std::string m_Title;
+    int m_Width;
+    int m_Height;
+    SDL_Window* m_pWindow;
+    SDL_Renderer* m_pRenderer; // SDL Renderer
 };
 
 #endif // WINDOW_H
