@@ -10,12 +10,10 @@ MovableSolid::MovableSolid(float mass, float inertia)
 void MovableSolid::Update(Element& element, Grid& grid, int x, int y)
 {
     // Example: Move down if the cell below is empty
-    if (grid.IsWithinBounds(x, y + 1) && grid.GetCell(x, y + 1).IsEmpty())
+    if (grid.IsWithinBounds(x + 1, y) && grid.GetCell(x + 1, y).IsEmpty())
     {
-        grid.MoveElement(x, y, x, y + 1);
+        grid.MoveElement(x, y, x + 1, y);
     }
-
-
 }
 
 Behavior::~Behavior()

@@ -29,6 +29,7 @@ void Grid::Update()
             {
                 cell.m_pElement->Update(*this, x, y); // Update based on behaviors
                 cell.m_IsUpdated = true;
+                std::cout << "Updated Cell: x =" + std::to_string(x) + " ,y = " + std::to_string(y) + "\n";
                 //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
             }
 		}
@@ -71,8 +72,8 @@ void Grid::Render(Window* window) const
                 SDL_SetRenderDrawColor(window->GetRenderer(), color.r, color.g, color.b, 255); // Red color for grid lines
 
                 SDL_Rect rect;
-                rect.x = m_GridInfo.pos.x + x * m_GridInfo.cellSize;
-                rect.y = m_GridInfo.pos.y + y * m_GridInfo.cellSize;
+                rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
+                rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
                 rect.w = m_GridInfo.cellSize;
                 rect.h = m_GridInfo.cellSize;
 

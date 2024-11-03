@@ -22,14 +22,11 @@ CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
     auto sand = std::make_shared<Element>("Sand", glm::vec3{0,0,0});
     sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
 
-    m_pGrid->GetCell(10, 3).m_pElement = sand;
-    m_pGrid->GetCell(11, 3).m_pElement = sand;
-    m_pGrid->GetCell(12, 3).m_pElement = sand;
-    m_pGrid->GetCell(13, 3).m_pElement = sand;
-    m_pGrid->GetCell(14, 3).m_pElement = sand;
-    m_pGrid->GetCell(15, 3).m_pElement = sand;
-    m_pGrid->GetCell(16, 3).m_pElement = sand;
-    m_pGrid->GetCell(26, 3).m_pElement = sand;
+    m_pGrid->GetCell(0, 0).m_pElement = sand;
+    m_pGrid->GetCell(1, 1).m_pElement = sand;
+    m_pGrid->GetCell(1, 5).m_pElement = sand;
+    m_pGrid->GetCell(1, 19).m_pElement = sand;
+
 }
 
 void CPUSandSimulation::Update(float deltaTime)
@@ -44,6 +41,14 @@ void CPUSandSimulation::Update(float deltaTime)
     if (m_IsSimulating)
     {
         m_pGrid->Update();
+        std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
+    }
+
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_S))
+    {
+        m_pGrid->Update();
+        std::cout << "STEPPED SIMULATION\n";
+
     }
 
 

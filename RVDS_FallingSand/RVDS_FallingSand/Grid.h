@@ -29,12 +29,14 @@ public:
 
 	inline Cell& GetCell(int x, int y)
 	{
+		if (x >= m_GridInfo.rows) std::cout << "Trying to access row index bigger than existing amount of rows!!!\n";
+		if (y >= m_GridInfo.columns) std::cout << "Trying to access row index bigger than existing amount of rows!!!\n";
 		return m_Cells[x][y];
 	}
 
-	inline bool IsWithinBounds(int x, int y)
+	inline bool IsWithinBounds(int x, int y) 
 	{
-		return x >= 0 && y >= 0 && x < m_GridInfo.columns && y < m_GridInfo.rows;
+		return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
 	}
 
 	void MoveElement(int x1, int y1, int x2, int y2)
