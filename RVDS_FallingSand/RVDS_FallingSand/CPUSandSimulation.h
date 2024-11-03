@@ -19,6 +19,7 @@ public:
 	void PlaceParticle(size_t x, size_t y, std::unique_ptr<Element>&& element) override;
 	void ProcessSandParticle(int x, int y, std::mt19937& gen, std::uniform_int_distribution<>& dist);
 private:
+	bool m_IsSimulating{ false };
 	std::unique_ptr<Grid> m_pGrid{};
 	Window* m_pWindow{};
 };

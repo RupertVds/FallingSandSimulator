@@ -14,6 +14,8 @@ void MovableSolid::Update(Element& element, Grid& grid, int x, int y)
     {
         grid.MoveElement(x, y, x, y + 1);
     }
+
+
 }
 
 Behavior::~Behavior()

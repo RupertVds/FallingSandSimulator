@@ -2,6 +2,7 @@
 #include <iostream>
 #include "ServiceLocator.h"
 #include "CPUSandSimulation.h"
+#include "InputManager.h"
 
 Game::Game()
     : m_pWindow(nullptr), m_IsRunning(true), m_BrushSize(1)
@@ -13,7 +14,6 @@ Game::Game()
         m_IsRunning = false;
     }
 
-    // TODO: fix non ratio 1:1 grid!!
     // Register the CPU-based sand simulation as the default
     ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 20}, 48, 72, 10 }, m_pWindow));
 }
@@ -58,57 +58,46 @@ void Game::ProcessInput()
             case SDLK_ESCAPE:
                 m_IsRunning = false;
                 break;
-            // Increase brush size
-            case SDLK_UP:
-                m_BrushSize = std::min(m_BrushSize + 1, 20);  // Cap the brush size at 10 for now
-                break;
-            // Decrease brush size
-            case SDLK_DOWN:
-                m_BrushSize = std::max(m_BrushSize - 1, 1);  // Minimum brush size of 1
-                break;
             default:
                 break;
             }
         }
     }
 
-    // Query the current mouse state at every frame
-    int mouseX, mouseY;
-    Uint32 mouseButtons = SDL_GetMouseState(&mouseX, &mouseY);  // Get the current mouse state and coordinates
+    InputManager::GetInstance().Update();
 
-    // Check if the left mouse button is pressed
-    if (mouseButtons & SDL_BUTTON(SDL_BUTTON_LEFT))
-    {
-        // Convert mouse position to grid coordinates
-        size_t gridX = static_cast<size_t>(mouseX);
-        size_t gridY = static_cast<size_t>(mouseY);
-
-        // Radius for the circular brush
-        int radius = m_BrushSize / 2;
-
-        // Iterate over a square bounding the circle, but only place particles inside the circle
-        for (int dx = -radius; dx <= radius; ++dx)
-        {
-            for (int dy = -radius; dy <= radius; ++dy)
-            {
-                // Calculate the distance from the center (gridX, gridY)
-                int distanceSquared = dx * dx + dy * dy;
-
-                // If the point is inside the radius (circle equation: x² + y² <= r²)
-                if (distanceSquared <= radius * radius)
-                {
-                    size_t brushX = gridX + dx;
-                    size_t brushY = gridY + dy;
-
-                    // Place a particle if within grid bounds
-                    if (brushX < m_pWindow->GetColumns() && brushY < m_pWindow->GetRows())
-                    {
-                        //ServiceLocator::GetSandSimulator().PlaceParticle(brushX, brushY, std::make_unique<E_Sand>());
-                    }
-                }
-            }
-        }
-    }
+    //// Query the current mouse state at every frame
+    //int mouseX, mouseY;
+    //Uint32 mouseButtons = SDL_GetMouseState(&mouseX, &mouseY);  // Get the current mouse state and coordinates
+    //// Check if the left mouse button is pressed
+    //if (mouseButtons & SDL_BUTTON(SDL_BUTTON_LEFT))
+    //{
+    //    // Convert mouse position to grid coordinates
+    //    size_t gridX = static_cast<size_t>(mouseX);
+    //    size_t gridY = static_cast<size_t>(mouseY);
+    //    // Radius for the circular brush
+    //    int radius = m_BrushSize / 2;
+    //    // Iterate over a square bounding the circle, but only place particles inside the circle
+    //    for (int dx = -radius; dx <= radius; ++dx)
+    //    {
+    //        for (int dy = -radius; dy <= radius; ++dy)
+    //        {
+    //            // Calculate the distance from the center (gridX, gridY)
+    //            int distanceSquared = dx * dx + dy * dy;
+    //            // If the point is inside the radius (circle equation: x² + y² <= r²)
+    //            if (distanceSquared <= radius * radius)
+    //            {
+    //                size_t brushX = gridX + dx;
+    //                size_t brushY = gridY + dy;
+    //                // Place a particle if within grid bounds
+    //                if (brushX < m_pWindow->GetColumns() && brushY < m_pWindow->GetRows())
+    //                {
+    //                    //ServiceLocator::GetSandSimulator().PlaceParticle(brushX, brushY, std::make_unique<E_Sand>());
+    //                }
+    //            }
+    //        }
+    //    }
+    //}
 }
 
 void Game::Update(float deltaTime)

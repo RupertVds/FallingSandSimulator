@@ -14,6 +14,7 @@ public:
     ~Cell();
 
     std::shared_ptr<Element> m_pElement{};
+    bool m_IsUpdated{};
 
     bool IsEmpty() const { return !m_pElement; }
 };

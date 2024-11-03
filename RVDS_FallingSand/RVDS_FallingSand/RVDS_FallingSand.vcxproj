@@ -27,6 +27,7 @@
     <ClCompile Include="Game.cpp" />
     <ClCompile Include="glad.c" />
     <ClCompile Include="Grid.cpp" />
+    <ClCompile Include="InputManager.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="ServiceLocator.cpp" />
     <ClCompile Include="Window.cpp" />
@@ -39,6 +40,7 @@
     <ClInclude Include="ElementRenderer.h" />
     <ClInclude Include="Game.h" />
     <ClInclude Include="Grid.h" />
+    <ClInclude Include="InputManager.h" />
     <ClInclude Include="ISandSimulation.h" />
     <ClInclude Include="ServiceLocator.h" />
     <ClInclude Include="Window.h" />

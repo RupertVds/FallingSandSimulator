@@ -5,6 +5,7 @@
 #include <random>
 #include <chrono>
 #include <thread>
+#include "InputManager.h"
 
 CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
 	:
@@ -33,8 +34,20 @@ CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
 
 void CPUSandSimulation::Update(float deltaTime)
 {
-    m_pGrid->Update();
-    std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_SPACE))
+    {
+        m_IsSimulating = !m_IsSimulating;
+        std::cout << "TOGGLED SIMULATING\n";
+
+    }
+
+    if (m_IsSimulating)
+    {
+        m_pGrid->Update();
+    }
+
+
+    //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(2)));
 
 }
 

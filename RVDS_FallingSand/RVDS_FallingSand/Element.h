@@ -25,21 +25,28 @@ public:
 public:
 	void Render() const;
 
-    void Update(Grid& grid, int x, int y) {
-        for (auto& behavior : m_pBehaviors) {
+    void Update(Grid& grid, int x, int y) 
+    {
+        //m_IsUpdated = false;
+        for (auto& behavior : m_pBehaviors) 
+        {
             behavior->Update(*this, grid, x, y);
         }
+        //m_IsUpdated = true;
     }
 
     template <typename T, typename... Args>
-    void AddBehavior(Args&&... args) {
+    void AddBehavior(Args&&... args) 
+    {
         m_pBehaviors.push_back(std::make_unique<T>(std::forward<Args>(args)...));
     }
 
     template <typename T>
     T& GetBehavior() {
-        for (auto& behavior : m_pBehaviors) {
-            if (auto casted = std::dynamic_pointer_cast<T>(behavior)) {
+        for (auto& behavior : m_pBehaviors)
+        {
+            if (auto casted = std::dynamic_pointer_cast<T>(behavior))
+            {
                 return *casted;
             }
         }
@@ -47,9 +54,12 @@ public:
     }
 
     template <typename T>
-    bool HasBehavior() const {
-        for (const auto& behavior : m_pBehaviors) {
-            if (std::dynamic_pointer_cast<T>(behavior)) {
+    bool HasBehavior() const 
+    {
+        for (const auto& behavior : m_pBehaviors)
+        {
+            if (std::dynamic_pointer_cast<T>(behavior)) 
+            {
                 return true;
             }
         }
@@ -64,6 +74,8 @@ private:
 	std::string m_Name{};
 	glm::vec3 m_Color{};
 	std::vector<std::unique_ptr<Behavior>> m_pBehaviors{};
+//public:
+//    bool m_IsUpdated{};
 };
 
 #endif // !ELEMENT_H

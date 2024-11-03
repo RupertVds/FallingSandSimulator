@@ -54,6 +54,9 @@
     <ClCompile Include="Element.cpp">
       <Filter>Game\Elements</Filter>
     </ClCompile>
+    <ClCompile Include="InputManager.cpp">
+      <Filter>Framework</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Window.h">
@@ -85,6 +88,9 @@
     </ClInclude>
     <ClInclude Include="Cell.h">
       <Filter>Game\Simulation</Filter>
+    </ClInclude>
+    <ClInclude Include="InputManager.h">
+      <Filter>Framework</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
