@@ -55,19 +55,37 @@ void InputManager::UpdateKeyboardState()
     }
 }
 
-bool InputManager::IsMouseButtonDown(int button) const
+bool InputManager::IsMouseButtonPressed(int button) const
 {
-    return m_MouseButtonStateCurrent.at(button) && !m_MouseButtonStatePrevious.at(button);
+    auto current = m_MouseButtonStateCurrent.find(button);
+    auto previous = m_MouseButtonStatePrevious.find(button);
+
+    bool isCurrentDown = current != m_MouseButtonStateCurrent.end() && current->second;
+    bool wasPreviousDown = previous != m_MouseButtonStatePrevious.end() && previous->second;
+
+    return isCurrentDown && !wasPreviousDown;
 }
 
 bool InputManager::IsMouseButtonHeld(int button) const
 {
-    return m_MouseButtonStateCurrent.at(button) && m_MouseButtonStatePrevious.at(button);
+    auto current = m_MouseButtonStateCurrent.find(button);
+    auto previous = m_MouseButtonStatePrevious.find(button);
+
+    bool isCurrentDown = current != m_MouseButtonStateCurrent.end() && current->second;
+    bool wasPreviousDown = previous != m_MouseButtonStatePrevious.end() && previous->second;
+
+    return isCurrentDown && wasPreviousDown;
 }
 
 bool InputManager::IsMouseButtonReleased(int button) const
 {
-    return !m_MouseButtonStateCurrent.at(button) && m_MouseButtonStatePrevious.at(button);
+    auto current = m_MouseButtonStateCurrent.find(button);
+    auto previous = m_MouseButtonStatePrevious.find(button);
+
+    bool isCurrentDown = current != m_MouseButtonStateCurrent.end() && current->second;
+    bool wasPreviousDown = previous != m_MouseButtonStatePrevious.end() && previous->second;
+
+    return !isCurrentDown && wasPreviousDown;
 }
 
 bool InputManager::IsKeyPressed(SDL_Scancode key) const

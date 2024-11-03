@@ -16,7 +16,7 @@ Game::Game()
 
     // Register the CPU-based sand simulation as the default
     // grid with: pos: x=0;y=20 , rows=11, cols=20, cellsize=10
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 20}, 11, 20, 30 }, m_pWindow));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{300, 200}, 11, 20, 20 }, m_pWindow));
 }
 
 Game::~Game()

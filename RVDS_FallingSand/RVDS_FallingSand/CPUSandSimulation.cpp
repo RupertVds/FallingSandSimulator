@@ -41,7 +41,7 @@ void CPUSandSimulation::Update(float deltaTime)
     if (m_IsSimulating)
     {
         m_pGrid->Update();
-        std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
+        //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
     }
 
     if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_S))

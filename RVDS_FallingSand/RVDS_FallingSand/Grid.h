@@ -34,9 +34,25 @@ public:
 		return m_Cells[x][y];
 	}
 
-	inline bool IsWithinBounds(int x, int y) 
+	inline bool IsWithinBounds(int x, int y) const
 	{
 		return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
+	}
+
+	inline glm::ivec2 ConvertScreenToGrid(const glm::ivec2& screenPos) const
+	{
+		// Check if mouse position is within the bounding box of the grid
+		if (screenPos.x < m_GridInfo.pos.x || screenPos.x >= m_GridInfo.pos.x + m_GridInfo.columns * m_GridInfo.cellSize ||
+			screenPos.y < m_GridInfo.pos.y || screenPos.y >= m_GridInfo.pos.y + m_GridInfo.rows * m_GridInfo.cellSize)
+		{
+			return glm::ivec2(-1, -1); // Out of grid bounds
+		}
+
+		// Calculate grid coordinates if within bounds
+		int gridX = (screenPos.x - m_GridInfo.pos.x) / m_GridInfo.cellSize;
+		int gridY = (screenPos.y - m_GridInfo.pos.y) / m_GridInfo.cellSize;
+
+		return glm::ivec2(gridX, gridY);
 	}
 
 	void MoveElement(int x1, int y1, int x2, int y2)
@@ -47,8 +63,16 @@ public:
 	void Update();
 	void Render(Window* window) const;
 
+	void UpdateElements();
+	void UpdateSelection();
+
+	void RenderSelection(Window* window) const;
+	void RenderGrid(Window* window) const;
+	void RenderElements(Window* window) const;
 private:
 	GridInfo m_GridInfo{};
+	bool m_MouseIsInGrid{};
+	glm::ivec2 m_SelectedCell{};
 
 	std::vector<std::vector<Cell>> m_Cells;
 };

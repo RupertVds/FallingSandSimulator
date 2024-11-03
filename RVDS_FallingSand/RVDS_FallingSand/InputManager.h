@@ -24,7 +24,7 @@ public:
 
     const glm::vec2& GetMousePos() const { return m_MousePos; };
     // Mouse button state checks
-    bool IsMouseButtonDown(int button) const;
+    bool IsMouseButtonPressed(int button) const;
     bool IsMouseButtonHeld(int button) const;
     bool IsMouseButtonReleased(int button) const;
 
