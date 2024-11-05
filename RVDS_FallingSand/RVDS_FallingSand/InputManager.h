@@ -21,6 +21,7 @@ public:
     ~InputManager() = default;
 public:
     void Update();
+    void HandleSDLEvent(const SDL_Event& event);
 
     const glm::vec2& GetMousePos() const { return m_MousePos; };
     // Mouse button state checks
@@ -32,6 +33,11 @@ public:
     bool IsKeyPressed(SDL_Scancode key) const;
     bool IsKeyHeld(SDL_Scancode key) const;
     bool IsKeyReleased(SDL_Scancode key) const;
+
+    // Scroll state checks
+    bool IsScrolledUp() const { return m_ScrolledUp; }
+    bool IsScrolledDown() const { return m_ScrolledDown; }
+    void ResetScrollState();
 private:
     glm::vec2 m_MousePos{};
     std::unordered_map<int, bool> m_MouseButtonStateCurrent{};
@@ -40,6 +46,10 @@ private:
     std::unordered_map<int, bool> m_KeyPressedMap{};
     std::unordered_map<int, bool> m_KeyHeldMap{};
     std::unordered_map<int, bool> m_KeyReleasedMap{};
+
+    // Scroll state
+    bool m_ScrolledUp{ false };
+    bool m_ScrolledDown{ false };
 
     InputManager() = default;
 

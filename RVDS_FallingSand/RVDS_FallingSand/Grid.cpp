@@ -18,13 +18,16 @@ void Grid::Update()
 {
     UpdateSelection();
 
-    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_UP))
+    if (InputManager::GetInstance().IsScrolledUp())
     {
         ++m_SelectionBrushSize;
     }
-    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DOWN))
+    if (InputManager::GetInstance().IsScrolledDown())
     {
-        --m_SelectionBrushSize;
+        if (m_SelectionBrushSize - 1 >= 1)
+        {
+            --m_SelectionBrushSize;
+        }
     }
 }
 
@@ -89,7 +92,7 @@ void Grid::UpdateSelection()
         m_SelectedCell = mouseGridPos;
 
         // Calculate the radius in cells directly from m_SelectionBrushSize
-        int radiusInCells = static_cast<int>(m_SelectionBrushSize);  // Now it's directly in cells
+        int radiusInCells = static_cast<int>(m_SelectionBrushSize - 1);  // Now it's directly in cells
 
         // Temporary boolean grid to track selected cells
         std::vector<std::vector<bool>> tempSelectedGrid(m_GridInfo.rows, std::vector<bool>(m_GridInfo.columns, false));
@@ -120,7 +123,7 @@ void Grid::UpdateSelection()
                 float distanceSquared = dxSquared + dySquared;
 
                 // Check if the distance is within the radius (squared to avoid sqrt)
-                if (distanceSquared <= (m_SelectionBrushSize * m_SelectionBrushSize))
+                if (distanceSquared <= (radiusInCells * radiusInCells))
                 {
                     // Check if the cell was already selected
                     if (!tempSelectedGrid[cellPos.y][cellPos.x])

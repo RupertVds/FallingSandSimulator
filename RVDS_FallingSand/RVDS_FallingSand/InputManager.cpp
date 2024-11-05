@@ -55,6 +55,20 @@ void InputManager::UpdateKeyboardState()
     }
 }
 
+void InputManager::HandleSDLEvent(const SDL_Event& event)
+{
+    if (event.type == SDL_MOUSEWHEEL) {
+        if (event.wheel.y > 0) {
+            m_ScrolledUp = true;   // Scroll up detected
+            m_ScrolledDown = false; // No scroll down
+        }
+        else if (event.wheel.y < 0) {
+            m_ScrolledDown = true;  // Scroll down detected
+            m_ScrolledUp = false;    // No scroll up
+        }
+    }
+}
+
 bool InputManager::IsMouseButtonPressed(int button) const
 {
     auto current = m_MouseButtonStateCurrent.find(button);
@@ -101,4 +115,11 @@ bool InputManager::IsKeyHeld(SDL_Scancode key) const
 bool InputManager::IsKeyReleased(SDL_Scancode key) const
 {
     return m_KeyReleasedMap.count(key) > 0 && m_KeyReleasedMap.at(key);
+}
+
+void InputManager::ResetScrollState()
+{
+    // Reset scroll states for the next frame
+    m_ScrolledUp = false;
+    m_ScrolledDown = false;
 }

@@ -17,7 +17,7 @@ Game::Game()
 
     // Register the CPU-based sand simulation as the default
     // grid with: pos: x=0;y=20 , rows=11, cols=20, cellsize=10
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{300, 200}, 300, 300, 2 }, m_pWindow));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{100, 100}, 100, 100, 5 }, m_pWindow));
 }
 
 Game::~Game()
@@ -113,6 +113,8 @@ void Game::ProcessInput()
                 break;
             }
         }
+
+        InputManager::GetInstance().HandleSDLEvent(e);
     }
 
     InputManager::GetInstance().Update();
@@ -155,6 +157,7 @@ void Game::Update()
 {
     // Game logic update can be implemented here
     ServiceLocator::GetSandSimulator().Update();
+    InputManager::GetInstance().ResetScrollState();
 
 }
 

@@ -34,6 +34,11 @@ public:
 		return m_Cells[x][y];
 	}
 
+	inline const std::vector<glm::ivec2>& GetSelectedCells() const
+	{
+		return m_SelectedCells;
+	}
+
 	inline bool IsWithinBounds(int x, int y) const
 	{
 		return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
@@ -79,7 +84,7 @@ private:
 	GridInfo m_GridInfo{};
 
 	// Selection Settings
-	int m_SelectionBrushSize{3};
+	int m_SelectionBrushSize{1};
 	glm::ivec2 m_SelectedCell{};
 	std::vector<glm::ivec2> m_SelectedCells{};
 	glm::vec4 m_SelectionColor{ 0.f, 100.f, 0.f, 255.f };

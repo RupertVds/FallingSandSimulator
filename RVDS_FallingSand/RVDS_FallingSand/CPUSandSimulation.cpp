@@ -59,6 +59,18 @@ void CPUSandSimulation::Update()
         m_pGrid->ClearGrid();
     }
 
+    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
+    {
+        auto sand = std::make_shared<Element>("Sand", glm::vec3{ 0,0,0 });
+        sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
+
+        for (const auto& cell : m_pGrid->GetSelectedCells())
+        {
+
+            m_pGrid->GetCell(cell.y, cell.x).m_pElement = sand;
+        }
+    }
+
     m_pGrid->Update();
 
     //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(2)));
