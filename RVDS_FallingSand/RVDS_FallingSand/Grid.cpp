@@ -41,11 +41,19 @@ void Grid::Update()
             auto sand = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
             sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
 
-            // maybe only if empty otherwise replace?
-            assert(x >= m_GridInfo.rows);
-            assert(y >= m_GridInfo.columns);
             GetNextGrid()[cell.y][cell.x]->m_pElement.reset();
             GetNextGrid()[cell.y][cell.x]->m_pElement = std::move(sand);
+        }
+    }
+
+    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_RIGHT))
+    {
+        for (const auto& cell : GetSelectedCells())
+        {
+            GetCurrentGrid()[cell.y][cell.x]->m_pElement.reset();
+            GetCurrentGrid()[cell.y][cell.x]->m_pElement = std::move(nullptr);
+            GetNextGrid()[cell.y][cell.x]->m_pElement.reset();
+            GetNextGrid()[cell.y][cell.x]->m_pElement = std::move(nullptr);
         }
     }
 
