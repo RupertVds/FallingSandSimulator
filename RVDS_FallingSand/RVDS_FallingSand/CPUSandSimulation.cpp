@@ -18,8 +18,15 @@ CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
 		throw std::runtime_error("Rows and Columns must be greater than 0");
 	}
 
-	// Initialize some sand particles for testing
-    auto sand = std::make_shared<Element>("Sand", glm::vec3{0,0,0});
+    Init();
+}
+
+void CPUSandSimulation::Init()
+{
+    m_pGrid->ClearGrid();
+
+    // Initialize some sand particles for testing
+    auto sand = std::make_shared<Element>("Sand", glm::vec3{ 0,0,0 });
     sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
 
     m_pGrid->GetCell(0, 0).m_pElement = sand;
@@ -29,31 +36,42 @@ CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
 
 }
 
-void CPUSandSimulation::Update(float deltaTime)
+void CPUSandSimulation::Update()
 {
     if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_SPACE))
     {
         m_IsSimulating = !m_IsSimulating;
         std::cout << "TOGGLED SIMULATING\n";
-
-    }
-
-    if (m_IsSimulating)
-    {
-        m_pGrid->Update();
-        //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(1)));
     }
 
     if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_S))
     {
-        m_pGrid->Update();
+        m_pGrid->FixedUpdate();
         std::cout << "STEPPED SIMULATION\n";
-
     }
 
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_R))
+    {
+        Init();
+    }
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_X))
+    {
+        m_pGrid->ClearGrid();
+    }
+
+    m_pGrid->Update();
 
     //std::this_thread::sleep_for(std::chrono::seconds(static_cast<long long>(2)));
 
+}
+
+void CPUSandSimulation::FixedUpdate()
+{
+    if (m_IsSimulating)
+    {
+        m_pGrid->FixedUpdate();
+        //std::this_thread::sleep_for(std::chrono::microseconds(static_cast<long long>(50000)));
+    }
 }
 
 void CPUSandSimulation::Render() const
@@ -117,6 +135,7 @@ void CPUSandSimulation::ProcessSandParticle(int x, int y, std::mt19937& gen, std
     //    }
     //}
 }
+
 
 
 

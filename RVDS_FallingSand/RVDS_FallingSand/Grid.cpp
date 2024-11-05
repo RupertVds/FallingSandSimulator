@@ -16,8 +16,21 @@ Grid::~Grid()
 
 void Grid::Update()
 {
-    UpdateElements();
     UpdateSelection();
+
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_UP))
+    {
+        ++m_SelectionBrushSize;
+    }
+    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DOWN))
+    {
+        --m_SelectionBrushSize;
+    }
+}
+
+void Grid::FixedUpdate()
+{
+    UpdateElements();
 }
 
 void Grid::Render(Window* window) const
@@ -26,6 +39,7 @@ void Grid::Render(Window* window) const
     RenderElements(window);
     RenderSelection(window);
 }
+
 
 void Grid::UpdateElements()
 {
@@ -58,50 +72,79 @@ void Grid::UpdateElements()
     }
 }
 
+#include <unordered_set>
+#include <cmath>
+
+#include <unordered_set>
+#include <cmath>
+
 void Grid::UpdateSelection()
 {
-    if (InputManager::GetInstance().IsMouseButtonPressed(SDL_BUTTON_RIGHT))
+    glm::vec2 mousePos = InputManager::GetInstance().GetMousePos();
+    auto mouseGridPos = ConvertScreenToGrid(mousePos);
+
+    if (IsWithinBounds(mouseGridPos.y, mouseGridPos.x))
     {
-        std::cout << "CLICKED\n";
-        glm::vec2 mousePos = InputManager::GetInstance().GetMousePos();
-        auto gridPos = ConvertScreenToGrid(mousePos);
-        std::cout << "MOUSEPOS: X = " + std::to_string(mousePos.x) + " , Y = " + std::to_string(mousePos.y) + "\n";
-        std::cout << "GRIDPOS: X = " + std::to_string(gridPos.x) + " , Y = " + std::to_string(gridPos.y) + "\n";
+        m_MouseIsInGrid = true;
+        m_SelectedCell = mouseGridPos;
+
+        // Temporary boolean grid to track selected cells
+        std::vector<std::vector<bool>> tempSelectedGrid(m_GridInfo.rows, std::vector<bool>(m_GridInfo.columns, false));
+
+        // Clear the main selection vector
+        m_SelectedCells.clear();
+
+        // Calculate radius in grid cells
+        int radiusInCells = static_cast<int>(m_SelectionBrushSize) * m_GridInfo.cellSize;  // now it's directly in cells
+        glm::vec2 center = { m_SelectedCell.x + 0.5f, m_SelectedCell.y + 0.5f };
+
+        for (int dx = -radiusInCells; dx <= radiusInCells; ++dx)
+        {
+            for (int dy = -radiusInCells; dy <= radiusInCells; ++dy)
+            {
+                glm::ivec2 cellPos = { m_SelectedCell.x + dx, m_SelectedCell.y + dy };
+
+                if (!IsWithinBounds(cellPos.y, cellPos.x)) continue;
+
+                glm::vec2 cellCenter = { cellPos.x + 0.5f, cellPos.y + 0.5f };
+                float distance = glm::distance(center, cellCenter);
+
+                if (distance <= m_SelectionBrushSize / m_GridInfo.cellSize)
+                {
+                    // Check the boolean grid to avoid duplicates
+                    if (!tempSelectedGrid[cellPos.y][cellPos.x])
+                    {
+                        m_SelectedCells.emplace_back(cellPos);
+                        tempSelectedGrid[cellPos.y][cellPos.x] = true;  // Mark as selected
+                    }
+                }
+            }
+        }
+    }
+    else
+    {
+        m_MouseIsInGrid = false;
+        m_SelectedCells.clear();
     }
 }
 
+
 void Grid::RenderSelection(Window* window) const
 {
-    glm::ivec2 mousePos = InputManager::GetInstance().GetMousePos();
+    if (!m_MouseIsInGrid) return;
 
-    // Convert mouse position to grid coordinates
-    glm::ivec2 gridPos = ConvertScreenToGrid(mousePos);
 
-    // Check if the converted position is within grid bounds
-    if (IsWithinBounds(gridPos.y, gridPos.x)) // gridPos.y is row (x), gridPos.x is column (y)
+    for (const glm::ivec2& selectedCell : m_SelectedCells)
     {
-        // Get the color of the element in the selected cell or set a default selection color
-        //glm::vec3 color = (m_Cells[gridPos.y][gridPos.x].IsEmpty())
-        //    ? glm::vec3(200, 200, 200) // Light gray for empty cell
-        //    : m_Cells[gridPos.y][gridPos.x].m_pElement->GetColor();        
-        
-        glm::vec3 color = glm::vec3(200, 200, 200); // Light gray for empty cell
-
-        SDL_SetRenderDrawColor(window->GetRenderer(), color.r, color.g, color.b, 150); // Semi-transparent
-
-        if (InputManager::GetInstance().IsMouseButtonPressed(SDL_BUTTON_LEFT))
-        {
-            std::cout << "Gridpos: x,y= " + std::to_string(gridPos.y) + ", " + std::to_string(gridPos.x) + "\n";
-        }
+        SDL_SetRenderDrawColor(window->GetRenderer(), m_SelectionColor.r, m_SelectionColor.g, m_SelectionColor.b, m_SelectionColor.a);
 
         SDL_Rect rect;
-        rect.x = m_GridInfo.pos.x + gridPos.x * m_GridInfo.cellSize;
-        rect.y = m_GridInfo.pos.y + gridPos.y * m_GridInfo.cellSize;
+        rect.x = m_GridInfo.pos.x + selectedCell.x * m_GridInfo.cellSize;
+        rect.y = m_GridInfo.pos.y + selectedCell.y * m_GridInfo.cellSize;
         rect.w = m_GridInfo.cellSize;
         rect.h = m_GridInfo.cellSize;
 
         SDL_RenderDrawRect(window->GetRenderer(), &rect);
-        
     }
 }
 
@@ -142,6 +185,17 @@ void Grid::RenderElements(Window* window) const
 
                 SDL_RenderFillRect(window->GetRenderer(), &rect);
             }
+        }
+    }
+}
+
+void Grid::ClearGrid()
+{
+    for (int x{}; x < this->GetRows(); ++x)
+    {
+        for (int y{}; y < this->GetColumns(); ++y)
+        {
+            m_Cells[x][y].m_pElement.reset();
         }
     }
 }

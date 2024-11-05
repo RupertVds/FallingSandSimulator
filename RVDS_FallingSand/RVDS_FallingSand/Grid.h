@@ -61,6 +61,7 @@ public:
 	}
 
 	void Update();
+	void FixedUpdate();
 	void Render(Window* window) const;
 
 	void UpdateElements();
@@ -69,12 +70,22 @@ public:
 	void RenderSelection(Window* window) const;
 	void RenderGrid(Window* window) const;
 	void RenderElements(Window* window) const;
+
+	void ClearGrid();
 private:
-	GridInfo m_GridInfo{};
-	bool m_MouseIsInGrid{};
-	glm::ivec2 m_SelectedCell{};
+	// sorted so memory layout is optimal
 
 	std::vector<std::vector<Cell>> m_Cells;
+	GridInfo m_GridInfo{};
+
+	// Selection Settings
+	int m_SelectionBrushSize{30};
+	glm::ivec2 m_SelectedCell{};
+	std::vector<glm::ivec2> m_SelectedCells{};
+	glm::vec4 m_SelectionColor{ 0.f, 100.f, 0.f, 255.f };
+	// selection is dirty
+	bool m_MouseIsInGrid{};
+	bool m_SelectionIsDirty{};
 };
 
 #endif // !GRID_H

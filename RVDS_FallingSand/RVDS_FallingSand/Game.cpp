@@ -3,9 +3,10 @@
 #include "ServiceLocator.h"
 #include "CPUSandSimulation.h"
 #include "InputManager.h"
+#include <thread>
 
 Game::Game()
-    : m_pWindow(nullptr), m_IsRunning(true), m_BrushSize(1)
+    : m_pWindow(nullptr), m_IsRunning(true)
 {
     m_pWindow = new Window("RVDS - Falling Sand Simulator", 1280, 720);
     if (!m_pWindow->Init())
@@ -16,7 +17,7 @@ Game::Game()
 
     // Register the CPU-based sand simulation as the default
     // grid with: pos: x=0;y=20 , rows=11, cols=20, cellsize=10
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{300, 200}, 11, 20, 20 }, m_pWindow));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{300, 200}, 40, 40, 10 }, m_pWindow));
 }
 
 Game::~Game()
@@ -26,22 +27,71 @@ Game::~Game()
 
 void Game::Run()
 {
-    // Main game loop
+    constexpr bool USE_VSYNC{ true };
+    constexpr bool CAP_FPS{ true };
+    constexpr float TARGETFPS{ 144.0f };
+    constexpr double TARGET_FRAME_DURATION = 1.0 / TARGETFPS;
+    constexpr float SIMULATION_TIME_STEP = 1.0f / 60.0f;
+
+    float lag = 0.0f;
+    float fpsAccumulator = 0.0f;
+    int frameCount = 0;
+    constexpr float FPS_UPDATE_INTERVAL = 1.0f;  // Update and print FPS every second
+
+    SDL_GL_SetSwapInterval(USE_VSYNC ? 1 : 0);
+    
+
+    auto lastFrameTime = std::chrono::high_resolution_clock::now();
+
     while (m_IsRunning)
     {
-
-        ProcessInput();  // Process user inputs and events
-
         // Calculate delta time
-        auto currentTime = std::chrono::steady_clock::now();
-        std::chrono::duration<float> elapsed = currentTime - m_LastTime;
-        float deltaTime = elapsed.count();
-        m_LastTime = currentTime;
+        auto currentFrameTime = std::chrono::high_resolution_clock::now();
+        float deltaTime = std::chrono::duration<float>(currentFrameTime - lastFrameTime).count();
+        lastFrameTime = currentFrameTime;
+        lag += deltaTime;
 
-        Update(deltaTime);  // Game logic update
-        Render();           // Render the window
+        // FPS calculation
+        fpsAccumulator += deltaTime;
+        frameCount++;
+
+        // Print FPS every second
+        if (fpsAccumulator >= FPS_UPDATE_INTERVAL)
+        {
+            float averageFPS = frameCount / fpsAccumulator;
+            std::cout << "Average FPS: " << averageFPS << std::endl;
+
+            // Reset accumulator and frame count
+            fpsAccumulator = 0.0f;
+            frameCount = 0;
+        }
+
+        ProcessInput();                // Process user inputs and events
+
+        while (lag >= SIMULATION_TIME_STEP)
+        {
+            FixedUpdate();             // Update simulation with fixed time step
+            lag -= SIMULATION_TIME_STEP;
+        }
+
+        Update();                      // General updates based on delta time
+        Render();                      // Render everything
+
+        // FPS Capping Logic
+        if (CAP_FPS && !USE_VSYNC)
+        {
+            auto frameEndTime = std::chrono::high_resolution_clock::now();
+            double frameDuration = std::chrono::duration<double>(frameEndTime - currentFrameTime).count();
+            double sleepDuration = TARGET_FRAME_DURATION - frameDuration;
+
+            if (sleepDuration > 0.0)
+            {
+                std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(sleepDuration * 1000)));
+            }
+        }
     }
 }
+
 
 void Game::ProcessInput()
 {
@@ -101,10 +151,17 @@ void Game::ProcessInput()
     //}
 }
 
-void Game::Update(float deltaTime)
+void Game::Update()
 {
     // Game logic update can be implemented here
-    ServiceLocator::GetSandSimulator().Update(deltaTime);
+    ServiceLocator::GetSandSimulator().Update();
+
+}
+
+void Game::FixedUpdate()
+{
+    ServiceLocator::GetSandSimulator().FixedUpdate();
+
 }
 
 void Game::Render() const

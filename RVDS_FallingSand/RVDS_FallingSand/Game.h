@@ -16,14 +16,14 @@ public:
     Game& operator=(Game&& other) = delete;
 
     void Run();
-    void Update(float deltaTime);
+    void Update();
+    void FixedUpdate();
     void Render() const;
     void ProcessInput();  // Handles all input, including window close
 
 private:
     Window* m_pWindow;
     bool m_IsRunning;
-    int m_BrushSize;
     std::chrono::steady_clock::time_point m_LastTime;
 };
 
