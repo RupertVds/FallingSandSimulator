@@ -27,11 +27,14 @@ public:
 	int GetColumns() const { return m_GridInfo.columns; };
 	int GetRows() const { return m_GridInfo.rows; };
 
-	inline Cell& GetCell(int x, int y)
+	inline std::vector<std::vector<std::unique_ptr<Cell>>>& GetCurrentGrid()
 	{
-		if (x >= m_GridInfo.rows) std::cout << "Trying to access row index bigger than existing amount of rows!!!\n";
-		if (y >= m_GridInfo.columns) std::cout << "Trying to access row index bigger than existing amount of rows!!!\n";
-		return m_Cells[x][y];
+		return m_CurrentGrid;
+	}
+
+	inline std::vector<std::vector<std::unique_ptr<Cell>>>& GetNextGrid()
+	{
+		return m_NextGrid;
 	}
 
 	inline const std::vector<glm::ivec2>& GetSelectedCells() const
@@ -62,7 +65,7 @@ public:
 
 	void MoveElement(int x1, int y1, int x2, int y2)
 	{
-		std::swap(m_Cells[x1][y1].m_pElement, m_Cells[x2][y2].m_pElement);
+		//std::swap(m_CurrentGrid[x1][y1].m_pElement, m_CurrentGrid[x2][y2].m_pElement);
 	}
 
 	void Update();
@@ -76,11 +79,17 @@ public:
 	void RenderGrid(Window* window) const;
 	void RenderElements(Window* window) const;
 
+	void SwapBuffers();
 	void ClearGrid();
+	void ClearNextGrid();
 private:
 	// sorted so memory layout is optimal
 
-	std::vector<std::vector<Cell>> m_Cells;
+	// double buffer
+	std::vector<std::vector<std::unique_ptr<Cell>>> m_CurrentGrid; // we read this
+	std::vector<std::vector<std::unique_ptr<Cell>>> m_NextGrid; // we change this
+
+
 	GridInfo m_GridInfo{};
 
 	// Selection Settings

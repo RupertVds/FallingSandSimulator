@@ -9,11 +9,29 @@ MovableSolid::MovableSolid(float mass, float inertia)
 
 void MovableSolid::Update(Element& element, Grid& grid, int x, int y)
 {
-    // Example: Move down if the cell below is empty
-    if (grid.IsWithinBounds(x + 1, y) && grid.GetCell(x + 1, y).IsEmpty())
+    // Check if the cell below is within bounds, empty in current grid, and empty in next grid
+    if (grid.IsWithinBounds(x - 1, y) && grid.GetCurrentGrid()[x - 1][y]->IsEmpty() && grid.GetNextGrid()[x - 1][y]->IsEmpty())
     {
-        grid.MoveElement(x, y, x + 1, y);
+        // Move the element down in the next grid by transferring ownership
+        grid.GetNextGrid()[x - 1][y]->m_pElement = std::move(grid.GetCurrentGrid()[x][y]->m_pElement);
     }
+    else if (grid.GetNextGrid()[x][y]->IsEmpty())
+    {
+        // If the element doesn’t move, transfer ownership to the same cell in nextGrid
+        grid.GetNextGrid()[x][y]->m_pElement = std::move(grid.GetCurrentGrid()[x][y]->m_pElement);
+    }
+
+    //// Check if the cell below is within bounds, empty in current grid, and empty in next grid
+    //if (grid.IsWithinBounds(x + 1, y) && grid.GetCurrentGrid()[x + 1][y]->IsEmpty() && grid.GetNextGrid()[x + 1][y]->IsEmpty())
+    //{
+    //    // Move the element down in the next grid by transferring ownership
+    //    grid.GetNextGrid()[x + 1][y]->m_pElement = std::move(grid.GetCurrentGrid()[x][y]->m_pElement);
+    //}
+    //else if (grid.GetNextGrid()[x][y]->IsEmpty())
+    //{
+    //    // If the element doesn’t move, transfer ownership to the same cell in nextGrid
+    //    grid.GetNextGrid()[x][y]->m_pElement = std::move(grid.GetCurrentGrid()[x][y]->m_pElement);
+    //}
 }
 
 Behavior::~Behavior()

@@ -26,14 +26,20 @@ void CPUSandSimulation::Init()
     m_pGrid->ClearGrid();
 
     // Initialize some sand particles for testing
-    auto sand = std::make_shared<Element>("Sand", glm::vec3{ 0,0,0 });
+    auto sand = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
     sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
 
-    m_pGrid->GetCell(0, 0).m_pElement = sand;
-    m_pGrid->GetCell(1, 1).m_pElement = sand;
-    m_pGrid->GetCell(1, 5).m_pElement = sand;
-    m_pGrid->GetCell(1, 19).m_pElement = sand;
+    m_pGrid->GetNextGrid()[40][20]->m_pElement = std::move(sand);
 
+    auto sand1 = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
+    sand1->AddBehavior<MovableSolid>(5.0f, 0.2f);
+
+    m_pGrid->GetNextGrid()[41][20]->m_pElement = std::move(sand1);
+
+    auto sand2 = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
+    sand2->AddBehavior<MovableSolid>(5.0f, 0.2f);
+
+    m_pGrid->GetNextGrid()[42][20]->m_pElement = std::move(sand2);
 }
 
 void CPUSandSimulation::Update()
@@ -57,18 +63,6 @@ void CPUSandSimulation::Update()
     if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_X))
     {
         m_pGrid->ClearGrid();
-    }
-
-    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
-    {
-        auto sand = std::make_shared<Element>("Sand", glm::vec3{ 0,0,0 });
-        sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
-
-        for (const auto& cell : m_pGrid->GetSelectedCells())
-        {
-
-            m_pGrid->GetCell(cell.y, cell.x).m_pElement = sand;
-        }
     }
 
     m_pGrid->Update();

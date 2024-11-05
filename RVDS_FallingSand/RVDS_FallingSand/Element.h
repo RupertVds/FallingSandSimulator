@@ -20,19 +20,18 @@ public:
 
 	Element(const Element& other) = delete;
 	Element& operator=(const Element& other) = delete;
-	Element(Element&& other) = delete;
-	Element& operator=(Element&& other) = delete;
+	Element(Element&& other) = default;
+	Element& operator=(Element&& other) = default;
 public:
 	void Render() const;
 
-    void Update(Grid& grid, int x, int y) 
+    void Update(Grid& grid, int x, int y)
     {
-        //m_IsUpdated = false;
-        for (auto& behavior : m_pBehaviors) 
+        for (auto& behavior : m_pBehaviors)
         {
+            // Pass both the current and next grid to each behavior so it can act accordingly
             behavior->Update(*this, grid, x, y);
         }
-        //m_IsUpdated = true;
     }
 
     template <typename T, typename... Args>
@@ -74,8 +73,8 @@ private:
 	std::string m_Name{};
 	glm::vec3 m_Color{};
 	std::vector<std::unique_ptr<Behavior>> m_pBehaviors{};
-//public:
-//    bool m_IsUpdated{};
+public:
+    bool m_IsUpdated{};
 };
 
 #endif // !ELEMENT_H
