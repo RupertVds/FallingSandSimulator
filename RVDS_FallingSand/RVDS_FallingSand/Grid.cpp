@@ -2,6 +2,7 @@
 #include <SDL.h>
 #include <thread>
 #include "InputManager.h"
+#include "ServiceLocator.h"
 
 Grid::Grid(const GridInfo& gridInfo)
 	:
@@ -33,6 +34,21 @@ void Grid::Update()
 {
     UpdateSelection();
 
+    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
+    {
+        for (const auto& cell : GetSelectedCells())
+        {
+            auto sand = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
+            sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
+
+            // maybe only if empty otherwise replace?
+            assert(x >= m_GridInfo.rows);
+            assert(y >= m_GridInfo.columns);
+            GetNextGrid()[cell.y][cell.x]->m_pElement.reset();
+            GetNextGrid()[cell.y][cell.x]->m_pElement = std::move(sand);
+        }
+    }
+
     if (InputManager::GetInstance().IsScrolledUp())
     {
         ++m_SelectionBrushSize;
@@ -48,24 +64,7 @@ void Grid::Update()
 
 void Grid::FixedUpdate()
 {
-    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
-    {
-        for (const auto& cell : GetSelectedCells())
-        {
-            auto sand = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
-            sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
-
-            // maybe only if empty otherwise replace?
-            assert(x >= m_GridInfo.rows);
-            assert(y >= m_GridInfo.columns);
-            GetCurrentGrid()[cell.y][cell.x]->m_pElement.reset();
-            GetCurrentGrid()[cell.y][cell.x]->m_pElement = std::move(sand);
-        }
-    }
-
     UpdateElements();
-
-
 
     // Swap buffers at the end of the update
     SwapBuffers();
@@ -202,26 +201,70 @@ void Grid::RenderElements(Window* window) const
     {
         for (int y{}; y < this->GetColumns(); ++y)
         {
-            if (!m_CurrentGrid[x][y]->IsEmpty())
+            if (ServiceLocator::GetSandSimulator().IsActive())
             {
-                glm::vec3 color = m_CurrentGrid[x][y]->m_pElement->GetColor();
-                SDL_SetRenderDrawColor(window->GetRenderer(),
-                    static_cast<Uint8>(color.r),
-                    static_cast<Uint8>(color.g),
-                    static_cast<Uint8>(color.b),
-                    static_cast<Uint8>(255));
+                if (!m_CurrentGrid[x][y]->IsEmpty())
+                {
+                    glm::vec3 color = m_CurrentGrid[x][y]->m_pElement->GetColor();
+                    SDL_SetRenderDrawColor(window->GetRenderer(),
+                        static_cast<Uint8>(color.r),
+                        static_cast<Uint8>(color.g),
+                        static_cast<Uint8>(color.b),
+                        static_cast<Uint8>(255));
 
-                SDL_Rect rect;
-                rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
-                rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
-                rect.w = m_GridInfo.cellSize;
-                rect.h = m_GridInfo.cellSize;
+                    SDL_Rect rect;
+                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
+                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
+                    rect.w = m_GridInfo.cellSize;
+                    rect.h = m_GridInfo.cellSize;
 
 
-                SDL_RenderFillRect(window->GetRenderer(), &rect);
+                    SDL_RenderFillRect(window->GetRenderer(), &rect);
+                }
             }
+            else
+            {
+                if (!m_CurrentGrid[x][y]->IsEmpty())
+                {
+                    glm::vec3 color = m_CurrentGrid[x][y]->m_pElement->GetColor();
+                    SDL_SetRenderDrawColor(window->GetRenderer(),
+                        static_cast<Uint8>(color.r),
+                        static_cast<Uint8>(color.g),
+                        static_cast<Uint8>(color.b),
+                        static_cast<Uint8>(255));
+
+                    SDL_Rect rect;
+                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
+                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
+                    rect.w = m_GridInfo.cellSize;
+                    rect.h = m_GridInfo.cellSize;
+
+
+                    SDL_RenderFillRect(window->GetRenderer(), &rect);
+                }
+                if (!m_NextGrid[x][y]->IsEmpty())
+                {
+                    glm::vec3 color = m_NextGrid[x][y]->m_pElement->GetColor();
+                    SDL_SetRenderDrawColor(window->GetRenderer(),
+                        static_cast<Uint8>(color.r),
+                        static_cast<Uint8>(color.g),
+                        static_cast<Uint8>(color.b),
+                        static_cast<Uint8>(255));
+
+                    SDL_Rect rect;
+                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
+                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
+                    rect.w = m_GridInfo.cellSize;
+                    rect.h = m_GridInfo.cellSize;
+
+
+                    SDL_RenderFillRect(window->GetRenderer(), &rect);
+                }
+            }
+
         }
     }
+  
 }
 
 void Grid::ClearGrid()

@@ -17,6 +17,9 @@ public:
 	void Update() override;
 	void FixedUpdate() override;
 	void Render() const override;
+
+	bool IsActive() const override;
+
 	void PlaceParticle(size_t x, size_t y, std::unique_ptr<Element>&& element) override;
 	void ProcessSandParticle(int x, int y, std::mt19937& gen, std::uniform_int_distribution<>& dist);
 private:
@@ -24,7 +27,6 @@ private:
 	std::unique_ptr<Grid> m_pGrid{};
 	Window* m_pWindow{};
 
-	// Inherited via ISandSimulation
 	void Init() override;
 };
 

@@ -6,6 +6,7 @@
 #include <chrono>
 #include <thread>
 #include "InputManager.h"
+#include "ServiceLocator.h"
 
 CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
 	:
@@ -40,6 +41,11 @@ void CPUSandSimulation::Init()
     sand2->AddBehavior<MovableSolid>(5.0f, 0.2f);
 
     m_pGrid->GetNextGrid()[42][20]->m_pElement = std::move(sand2);
+}
+
+bool CPUSandSimulation::IsActive() const
+{
+    return m_IsSimulating;
 }
 
 void CPUSandSimulation::Update()

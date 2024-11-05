@@ -14,6 +14,7 @@ public:
 	virtual void Update() = 0;
 	virtual void FixedUpdate() = 0;
 	virtual void Render() const = 0;
+	virtual bool IsActive() const = 0;
 	virtual void PlaceParticle(size_t x, size_t y, std::unique_ptr<Element>&& element) = 0;
 };
 
