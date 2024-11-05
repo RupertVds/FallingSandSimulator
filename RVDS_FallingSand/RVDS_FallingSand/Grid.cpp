@@ -88,33 +88,45 @@ void Grid::UpdateSelection()
         m_MouseIsInGrid = true;
         m_SelectedCell = mouseGridPos;
 
+        // Calculate the radius in cells directly from m_SelectionBrushSize
+        int radiusInCells = static_cast<int>(m_SelectionBrushSize);  // Now it's directly in cells
+
         // Temporary boolean grid to track selected cells
         std::vector<std::vector<bool>> tempSelectedGrid(m_GridInfo.rows, std::vector<bool>(m_GridInfo.columns, false));
 
         // Clear the main selection vector
         m_SelectedCells.clear();
 
-        // Calculate radius in grid cells
-        int radiusInCells = static_cast<int>(m_SelectionBrushSize) * m_GridInfo.cellSize;  // now it's directly in cells
+        // Center of the selection brush in grid coordinates
         glm::vec2 center = { m_SelectedCell.x + 0.5f, m_SelectedCell.y + 0.5f };
 
+        // Loop through all cells in the square defined by the selection brush
         for (int dx = -radiusInCells; dx <= radiusInCells; ++dx)
         {
             for (int dy = -radiusInCells; dy <= radiusInCells; ++dy)
             {
+                // Directly calculate the position of the cell being checked
                 glm::ivec2 cellPos = { m_SelectedCell.x + dx, m_SelectedCell.y + dy };
 
+                // Check bounds first
                 if (!IsWithinBounds(cellPos.y, cellPos.x)) continue;
 
+                // Center of the current cell
                 glm::vec2 cellCenter = { cellPos.x + 0.5f, cellPos.y + 0.5f };
-                float distance = glm::distance(center, cellCenter);
 
-                if (distance <= m_SelectionBrushSize / m_GridInfo.cellSize)
+                // Calculate the squared distance from the center of the selection to the cell center
+                float dxSquared = (center.x - cellCenter.x) * (center.x - cellCenter.x);
+                float dySquared = (center.y - cellCenter.y) * (center.y - cellCenter.y);
+                float distanceSquared = dxSquared + dySquared;
+
+                // Check if the distance is within the radius (squared to avoid sqrt)
+                if (distanceSquared <= (m_SelectionBrushSize * m_SelectionBrushSize))
                 {
-                    // Check the boolean grid to avoid duplicates
+                    // Check if the cell was already selected
                     if (!tempSelectedGrid[cellPos.y][cellPos.x])
                     {
-                        m_SelectedCells.emplace_back(cellPos);
+                        // If valid, add to the selected cells
+                        m_SelectedCells.push_back(cellPos);
                         tempSelectedGrid[cellPos.y][cellPos.x] = true;  // Mark as selected
                     }
                 }
@@ -127,6 +139,8 @@ void Grid::UpdateSelection()
         m_SelectedCells.clear();
     }
 }
+
+
 
 
 void Grid::RenderSelection(Window* window) const
