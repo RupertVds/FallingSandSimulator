@@ -1,33 +1,71 @@
 #include "Grid.h"
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <thread>
 #include "InputManager.h"
 #include "ServiceLocator.h"
+#include <Systems.h>
 
 Grid::Grid(const GridInfo& gridInfo)
-	:
-    m_GridInfo{ gridInfo }
+    : m_GridInfo(gridInfo), m_pElementRegistry(std::make_unique<ElementRegistry>())
 {
-    m_CurrentGrid.resize(gridInfo.rows);
-    m_NextGrid.resize(gridInfo.rows);
-
-    for (int i = 0; i < gridInfo.rows; ++i) 
-    {
-        m_CurrentGrid[i].resize(gridInfo.columns);
-        m_NextGrid[i].resize(gridInfo.columns);
-
-        for (int j = 0; j < gridInfo.columns; ++j) 
-        {
-            m_CurrentGrid[i][j] = std::make_unique<Cell>();
-            m_NextGrid[i][j] = std::make_unique<Cell>();
-        }
-    }
-
-
+    m_Elements.resize(gridInfo.rows, std::vector<ElementID>(gridInfo.columns, EMPTY_CELL));
 }
 
 Grid::~Grid()
 {
+}
+
+void Grid::Init()
+{
+    AddElementAt(0, 0, "Sand");
+    AddElementAt(0, 1, "Sand");
+    AddElementAt(1, 0, "Water");
+}
+
+inline ElementID Grid::GetElementID(int x, int y) const
+{
+    return m_Elements[x][y];
+}
+
+inline bool Grid::IsWithinBounds(int x, int y) const
+{
+    return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
+}
+
+inline bool Grid::IsEmpty(int x, int y) const
+{
+    return GetElementID(x, y) == EMPTY_CELL;
+}
+
+void Grid::MoveElement(int x, int y, int newX, int newY)
+{
+    m_Elements[newX][newY] = m_Elements[x][y];
+    m_Elements[x][y] = EMPTY_CELL;
+}
+
+inline const Element* Grid::GetElementData(int x, int y) const
+{
+    ElementID id = GetElementID(x, y);
+    return id != EMPTY_CELL ? m_pElementRegistry->GetElementData(id) : nullptr;
+}
+
+void Grid::AddElementAt(int x, int y, const std::string& elementTypeName)
+{
+    if (IsWithinBounds(x, y) && IsEmpty(x, y))
+    {
+        ElementID id = m_pElementRegistry->AddElement(elementTypeName);
+        m_Elements[x][y] = id;
+    }
+}
+
+void Grid::RemoveElementAt(int x, int y)
+{
+    if (IsWithinBounds(x, y) && !IsEmpty(x, y))
+    {
+        ElementID id = m_Elements[x][y];
+        m_pElementRegistry->RemoveElement(id);
+        m_Elements[x][y] = EMPTY_CELL;
+    }
 }
 
 void Grid::Update()
@@ -38,11 +76,7 @@ void Grid::Update()
     {
         for (const auto& cell : GetSelectedCells())
         {
-            auto sand = std::make_unique<Element>("Sand", glm::vec3{ 194,178,128 });
-            sand->AddBehavior<MovableSolid>(5.0f, 0.2f);
-
-            GetNextGrid()[cell.y][cell.x]->m_pElement.reset();
-            GetNextGrid()[cell.y][cell.x]->m_pElement = std::move(sand);
+            
         }
     }
 
@@ -50,10 +84,7 @@ void Grid::Update()
     {
         for (const auto& cell : GetSelectedCells())
         {
-            GetCurrentGrid()[cell.y][cell.x]->m_pElement.reset();
-            GetCurrentGrid()[cell.y][cell.x]->m_pElement = std::move(nullptr);
-            GetNextGrid()[cell.y][cell.x]->m_pElement.reset();
-            GetNextGrid()[cell.y][cell.x]->m_pElement = std::move(nullptr);
+            
         }
     }
 
@@ -73,10 +104,6 @@ void Grid::Update()
 void Grid::FixedUpdate()
 {
     UpdateElements();
-
-    // Swap buffers at the end of the update
-    SwapBuffers();
-    ClearNextGrid();  // Reset the next grid for the next update
 }
 
 void Grid::Render(Window* window) const
@@ -89,16 +116,8 @@ void Grid::Render(Window* window) const
 
 void Grid::UpdateElements()
 {
-    for (int x = GetRows() - 1; x >= 0; --x) {
-        for (int y = 0; y < GetColumns(); ++y) {
-            auto& cell = m_CurrentGrid[x][y];
-
-            if (cell->m_pElement) {
-                // Update element and place it in the next grid
-                cell->m_pElement->Update(*this, x, y);
-            }
-        }
-    }
+    MovementSystem(*this, 0.f);
+    HeatSystem(*this, 0.f);
 }
 
 void Grid::UpdateSelection()
@@ -111,14 +130,19 @@ void Grid::UpdateSelection()
         m_MouseIsInGrid = true;
         m_SelectedCell = mouseGridPos;
 
+        // Clear the main selection vector
+        m_SelectedCells.clear();
+
+        if (m_SelectionBrushSize <= 1)
+        {
+            return;
+        }
+
         // Calculate the radius in cells directly from m_SelectionBrushSize
         int radiusInCells = static_cast<int>(m_SelectionBrushSize - 1);  // Now it's directly in cells
 
         // Temporary boolean grid to track selected cells
         std::vector<std::vector<bool>> tempSelectedGrid(m_GridInfo.rows, std::vector<bool>(m_GridInfo.columns, false));
-
-        // Clear the main selection vector
-        m_SelectedCells.clear();
 
         // Center of the selection brush in grid coordinates
         glm::vec2 center = { m_SelectedCell.x + 0.5f, m_SelectedCell.y + 0.5f };
@@ -167,23 +191,34 @@ void Grid::RenderSelection(Window* window) const
 {
     if (!m_MouseIsInGrid) return;
 
+    if (m_SelectionBrushSize <= 1)
+    {
+        RenderDrawCell(window, m_SelectedCell);
+        return;
+    }
+
 
     for (const glm::ivec2& selectedCell : m_SelectedCells)
     {
-        SDL_SetRenderDrawColor(window->GetRenderer(), 
-            static_cast<Uint8>(m_SelectionColor.r), 
-            static_cast<Uint8>(m_SelectionColor.g),
-            static_cast<Uint8>(m_SelectionColor.b),
-            static_cast<Uint8>(m_SelectionColor.a));
-
-        SDL_Rect rect;
-        rect.x = m_GridInfo.pos.x + selectedCell.x * m_GridInfo.cellSize;
-        rect.y = m_GridInfo.pos.y + selectedCell.y * m_GridInfo.cellSize;
-        rect.w = m_GridInfo.cellSize;
-        rect.h = m_GridInfo.cellSize;
-
-        SDL_RenderDrawRect(window->GetRenderer(), &rect);
+        RenderDrawCell(window, selectedCell);
     }
+}
+
+void Grid::RenderDrawCell(Window* window, const glm::ivec2& selectedCell) const
+{
+    SDL_SetRenderDrawColor(window->GetRenderer(),
+        static_cast<Uint8>(m_SelectionColor.r),
+        static_cast<Uint8>(m_SelectionColor.g),
+        static_cast<Uint8>(m_SelectionColor.b),
+        static_cast<Uint8>(m_SelectionColor.a));
+
+    SDL_Rect rect;
+    rect.x = m_GridInfo.pos.x + selectedCell.x * m_GridInfo.cellSize;
+    rect.y = m_GridInfo.pos.y + selectedCell.y * m_GridInfo.cellSize;
+    rect.w = m_GridInfo.cellSize;
+    rect.h = m_GridInfo.cellSize;
+
+    SDL_RenderDrawRect(window->GetRenderer(), &rect);
 }
 
 void Grid::RenderGrid(Window* window) const
@@ -205,75 +240,38 @@ void Grid::RenderGrid(Window* window) const
 
 void Grid::RenderElements(Window* window) const
 {
-    for (int x{}; x < this->GetRows(); ++x)
+    for (int x = 0; x < this->GetRows(); ++x)
     {
-        for (int y{}; y < this->GetColumns(); ++y)
+        for (int y = 0; y < this->GetColumns(); ++y)
         {
-            if (ServiceLocator::GetSandSimulator().IsActive())
+            if (!IsEmpty(x, y))
             {
-                if (!m_CurrentGrid[x][y]->IsEmpty())
-                {
-                    glm::vec3 color = m_CurrentGrid[x][y]->m_pElement->GetColor();
-                    SDL_SetRenderDrawColor(window->GetRenderer(),
-                        static_cast<Uint8>(color.r),
-                        static_cast<Uint8>(color.g),
-                        static_cast<Uint8>(color.b),
-                        static_cast<Uint8>(255));
+                // Get the color as a uint32_t from the element's definition
+                const Element* element = GetElementData(x, y);
+                uint32_t color = element->definition->color;
 
-                    SDL_Rect rect;
-                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
-                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
-                    rect.w = m_GridInfo.cellSize;
-                    rect.h = m_GridInfo.cellSize;
+                // Extract RGB components from the uint32_t color
+                Uint8 r = (color >> 16) & 0xFF; // Extract red component
+                Uint8 g = (color >> 8) & 0xFF;  // Extract green component
+                Uint8 b = color & 0xFF;         // Extract blue component
 
+                // Set the render draw color
+                SDL_SetRenderDrawColor(window->GetRenderer(), r, g, b, 255);
 
-                    SDL_RenderFillRect(window->GetRenderer(), &rect);
-                }
+                // Set up the rectangle for the cell position
+                SDL_Rect rect;
+                rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
+                rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
+                rect.w = m_GridInfo.cellSize;
+                rect.h = m_GridInfo.cellSize;
+
+                // Draw the filled rectangle for this element
+                SDL_RenderFillRect(window->GetRenderer(), &rect);
             }
-            else
-            {
-                if (!m_CurrentGrid[x][y]->IsEmpty())
-                {
-                    glm::vec3 color = m_CurrentGrid[x][y]->m_pElement->GetColor();
-                    SDL_SetRenderDrawColor(window->GetRenderer(),
-                        static_cast<Uint8>(color.r),
-                        static_cast<Uint8>(color.g),
-                        static_cast<Uint8>(color.b),
-                        static_cast<Uint8>(255));
-
-                    SDL_Rect rect;
-                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
-                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
-                    rect.w = m_GridInfo.cellSize;
-                    rect.h = m_GridInfo.cellSize;
-
-
-                    SDL_RenderFillRect(window->GetRenderer(), &rect);
-                }
-                if (!m_NextGrid[x][y]->IsEmpty())
-                {
-                    glm::vec3 color = m_NextGrid[x][y]->m_pElement->GetColor();
-                    SDL_SetRenderDrawColor(window->GetRenderer(),
-                        static_cast<Uint8>(color.r),
-                        static_cast<Uint8>(color.g),
-                        static_cast<Uint8>(color.b),
-                        static_cast<Uint8>(255));
-
-                    SDL_Rect rect;
-                    rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
-                    rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
-                    rect.w = m_GridInfo.cellSize;
-                    rect.h = m_GridInfo.cellSize;
-
-
-                    SDL_RenderFillRect(window->GetRenderer(), &rect);
-                }
-            }
-
         }
     }
-  
 }
+
 
 void Grid::ClearGrid()
 {
@@ -281,24 +279,7 @@ void Grid::ClearGrid()
     {
         for (int y{}; y < this->GetColumns(); ++y)
         {
-            m_CurrentGrid[x][y]->m_pElement.reset();
-            m_NextGrid[x][y]->m_pElement.reset();
+            RemoveElementAt(x, y);
         }
     }
-}
-
-void Grid::ClearNextGrid()
-{
-    for (int x{}; x < this->GetRows(); ++x)
-    {
-        for (int y{}; y < this->GetColumns(); ++y)
-        {
-            m_NextGrid[x][y]->m_pElement.reset();
-        }
-    }
-}
-
-void Grid::SwapBuffers()
-{
-    std::swap(m_CurrentGrid, m_NextGrid);
 }

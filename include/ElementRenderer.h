@@ -1,7 +1,6 @@
 #ifndef ELEMENTRENDERER_H
 #define ELEMENTRENDERER_H
 
-#include "Element.h"
 #include <vector>
 #include <SDL_surface.h>
 #include <unordered_map>

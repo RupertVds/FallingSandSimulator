@@ -1,9 +1,10 @@
 #ifndef GRID_H
 #define GRID_H
 
-#include "Cell.h"
 #include <vector>
 #include "Window.h"
+#include <glm/glm.hpp>
+#include "ElementRegistry.h"
 
 struct GridInfo
 {
@@ -24,29 +25,39 @@ public:
 	Grid(Grid&& other) = delete;
 	Grid& operator=(Grid&& other) = delete;
 public:
-	int GetColumns() const { return m_GridInfo.columns; };
+	void Init();
 	int GetRows() const { return m_GridInfo.rows; };
+	int GetColumns() const { return m_GridInfo.columns; };
 
-	inline std::vector<std::vector<std::unique_ptr<Cell>>>& GetCurrentGrid()
-	{
-		return m_CurrentGrid;
-	}
+	inline ElementID GetElementID(int x, int y) const;
+	inline const Element* GetElementData(int x, int y) const;
 
-	inline std::vector<std::vector<std::unique_ptr<Cell>>>& GetNextGrid()
-	{
-		return m_NextGrid;
-	}
+	void AddElementAt(int x, int y, const std::string& elementTypeName);
+	void RemoveElementAt(int x, int y);
 
+	inline bool IsWithinBounds(int x, int y) const;
+	inline bool IsEmpty(int x, int y) const;
+
+	void MoveElement(int x, int y, int newX, int newY);
+
+	void Update();
+	void FixedUpdate();
+	void Render(Window* window) const;
+
+	void UpdateElements();
+
+	void RenderDrawCell(Window* window, const glm::ivec2& selectedCell) const;
+	void RenderGrid(Window* window) const;
+	void RenderElements(Window* window) const;
+
+	void ClearGrid();
+
+	void RenderSelection(Window* window) const;
+	void UpdateSelection();
 	inline const std::vector<glm::ivec2>& GetSelectedCells() const
 	{
 		return m_SelectedCells;
 	}
-
-	inline bool IsWithinBounds(int x, int y) const
-	{
-		return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
-	}
-
 	inline glm::ivec2 ConvertScreenToGrid(const glm::ivec2& screenPos) const
 	{
 		// Check if mouse position is within the bounding box of the grid
@@ -63,34 +74,11 @@ public:
 		return glm::ivec2(gridX, gridY);
 	}
 
-	void MoveElement(int x1, int y1, int x2, int y2)
-	{
-		//std::swap(m_CurrentGrid[x1][y1].m_pElement, m_CurrentGrid[x2][y2].m_pElement);
-	}
-
-	void Update();
-	void FixedUpdate();
-	void Render(Window* window) const;
-
-	void UpdateElements();
-	void UpdateSelection();
-
-	void RenderSelection(Window* window) const;
-	void RenderGrid(Window* window) const;
-	void RenderElements(Window* window) const;
-
-	void SwapBuffers();
-	void ClearGrid();
-	void ClearNextGrid();
 private:
-	// sorted so memory layout is optimal
-
-	// double buffer
-	std::vector<std::vector<std::unique_ptr<Cell>>> m_CurrentGrid; // we read this
-	std::vector<std::vector<std::unique_ptr<Cell>>> m_NextGrid; // we change this
-
-
 	GridInfo m_GridInfo{};
+
+	std::vector<std::vector<ElementID>> m_Elements{};
+	std::unique_ptr<ElementRegistry> m_pElementRegistry{};
 
 	// Selection Settings
 	int m_SelectionBrushSize{1};
