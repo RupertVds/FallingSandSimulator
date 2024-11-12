@@ -5,7 +5,12 @@ ElementRegistry::ElementRegistry()
     ElementDefinition sand{ "Sand", 0xD2B48C, {{"MovableSolid", MovableSolidComp{0.3f, 1.0f}}} };
     m_ElementTypes["Sand"] = sand;
 
-    ElementDefinition water{ "Water", 0x3498DB, {{"Liquid", LiquidComp{0.1f, 0.5f}}} };
+    ElementDefinition water{ "Water", 0x3498DB, 
+        {
+            {"Liquid", LiquidComp{0.1f, 0.5f}},
+            {"MovableSolid", MovableSolidComp{0.3f, 1.0f}}
+        } 
+    };
     m_ElementTypes["Water"] = water;
 }
 

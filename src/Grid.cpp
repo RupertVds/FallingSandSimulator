@@ -20,6 +20,7 @@ void Grid::Init()
     AddElementAt(0, 0, "Sand");
     AddElementAt(0, 1, "Sand");
     AddElementAt(1, 0, "Water");
+    AddElementAt(1, 1, "Water");
 }
 
 inline ElementID Grid::GetElementID(int x, int y) const
@@ -76,7 +77,7 @@ void Grid::Update()
     {
         for (const auto& cell : GetSelectedCells())
         {
-            
+            AddElementAt(cell.x, cell.y, "Sand");
         }
     }
 
@@ -84,7 +85,7 @@ void Grid::Update()
     {
         for (const auto& cell : GetSelectedCells())
         {
-            
+            RemoveElementAt(cell.x, cell.y);
         }
     }
 
@@ -108,8 +109,8 @@ void Grid::FixedUpdate()
 
 void Grid::Render(Window* window) const
 {
-    RenderGrid(window);
     RenderElements(window);
+    RenderGrid(window);
     RenderSelection(window);
 }
 
@@ -122,6 +123,7 @@ void Grid::UpdateElements()
 
 void Grid::UpdateSelection()
 {
+    return;
     glm::vec2 mousePos = InputManager::GetInstance().GetMousePos();
     auto mouseGridPos = ConvertScreenToGrid(mousePos);
 
@@ -185,6 +187,7 @@ void Grid::UpdateSelection()
         m_MouseIsInGrid = false;
         m_SelectedCells.clear();
     }
+
 }
 
 void Grid::RenderSelection(Window* window) const
@@ -240,36 +243,62 @@ void Grid::RenderGrid(Window* window) const
 
 void Grid::RenderElements(Window* window) const
 {
-    for (int x = 0; x < this->GetRows(); ++x)
+    static SDL_Texture* gridTexture = nullptr;
+    //static bool textureNeedsUpdate = true;
+
+    // create texture if no texture
+    if (!gridTexture)
     {
-        for (int y = 0; y < this->GetColumns(); ++y)
+        gridTexture = SDL_CreateTexture(
+            window->GetRenderer(),
+            SDL_PIXELFORMAT_RGB888,
+            SDL_TEXTUREACCESS_STREAMING,
+            this->GetColumns(),
+            this->GetRows()
+        );
+       // textureNeedsUpdate = true;
+    }
+
+    //if (textureNeedsUpdate)
+    {
+        void* pixels;
+        int pitch;
+        SDL_LockTexture(gridTexture, nullptr, &pixels, &pitch);
+
+        Uint32* pixelData = static_cast<Uint32*>(pixels);
+
+
+        for (int x = 0; x < this->GetRows(); ++x)
         {
-            if (!IsEmpty(x, y))
+            for (int y = 0; y < this->GetColumns(); ++y)
             {
-                // Get the color as a uint32_t from the element's definition
-                const Element* element = GetElementData(x, y);
-                uint32_t color = element->definition->color;
-
-                // Extract RGB components from the uint32_t color
-                Uint8 r = (color >> 16) & 0xFF; // Extract red component
-                Uint8 g = (color >> 8) & 0xFF;  // Extract green component
-                Uint8 b = color & 0xFF;         // Extract blue component
-
-                // Set the render draw color
-                SDL_SetRenderDrawColor(window->GetRenderer(), r, g, b, 255);
-
-                // Set up the rectangle for the cell position
-                SDL_Rect rect;
-                rect.x = m_GridInfo.pos.x + y * m_GridInfo.cellSize;
-                rect.y = m_GridInfo.pos.y + x * m_GridInfo.cellSize;
-                rect.w = m_GridInfo.cellSize;
-                rect.h = m_GridInfo.cellSize;
-
-                // Draw the filled rectangle for this element
-                SDL_RenderFillRect(window->GetRenderer(), &rect);
+                if (!IsEmpty(x, y))
+                {
+                    const Element* element = GetElementData(x, y);
+                    uint32_t color = element->definition->color;
+                    // Set the corresponding "pixel" in the texture
+                    pixelData[x * (pitch / 4) + y] = color;
+                }
+                else
+                {
+                    // Set empty cells to a background color (optional)
+                    pixelData[x * (pitch / 4) + y] = 0x1A1A1A; // Black with full opacity
+                }
             }
         }
+
+        SDL_UnlockTexture(gridTexture);
+
+        //textureNeedsUpdate = false;
     }
+
+    SDL_Rect destRect = {
+        m_GridInfo.pos.x,
+        m_GridInfo.pos.y,
+        m_GridInfo.cellSize * this->GetColumns(),
+        m_GridInfo.cellSize * this->GetRows() };
+
+    SDL_RenderCopy(window->GetRenderer(), gridTexture, nullptr, &destRect);
 }
 
 

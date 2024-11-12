@@ -71,7 +71,7 @@ public:
 		int gridX = (screenPos.x - m_GridInfo.pos.x) / m_GridInfo.cellSize;
 		int gridY = (screenPos.y - m_GridInfo.pos.y) / m_GridInfo.cellSize;
 
-		return glm::ivec2(gridX, gridY);
+		return glm::ivec2(gridY, gridX);
 	}
 
 private:
