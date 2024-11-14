@@ -71,21 +71,29 @@ void Grid::RemoveElementAt(int x, int y)
 
 void Grid::Update()
 {
-    UpdateSelection();
+    const glm::ivec2 gridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
 
-    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
+    if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_1))
     {
-        for (const auto& cell : GetSelectedCells())
+        if (gridMousePos != glm::ivec2{ -1, -1 })
         {
-            AddElementAt(cell.x, cell.y, "Sand");
+            AddElementAt(gridMousePos.x, gridMousePos.y, "Sand");
         }
     }
 
-    if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_RIGHT))
+    if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_2))
     {
-        for (const auto& cell : GetSelectedCells())
+        if (gridMousePos != glm::ivec2{ -1, -1 })
         {
-            RemoveElementAt(cell.x, cell.y);
+            AddElementAt(gridMousePos.x, gridMousePos.y, "Water");
+        }
+    }
+
+    if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_0))
+    {
+        if (gridMousePos != glm::ivec2{ -1, -1 })
+        {
+            RemoveElementAt(gridMousePos.x, gridMousePos.y);
         }
     }
 
@@ -111,9 +119,8 @@ void Grid::Render(Window* window) const
 {
     RenderElements(window);
     RenderGrid(window);
-    RenderSelection(window);
+    RenderBrush(window);
 }
-
 
 void Grid::UpdateElements()
 {
@@ -121,107 +128,9 @@ void Grid::UpdateElements()
     HeatSystem(*this, 0.f);
 }
 
-void Grid::UpdateSelection()
-{
-    return;
-    glm::vec2 mousePos = InputManager::GetInstance().GetMousePos();
-    auto mouseGridPos = ConvertScreenToGrid(mousePos);
-
-    if (IsWithinBounds(mouseGridPos.y, mouseGridPos.x))
-    {
-        m_MouseIsInGrid = true;
-        m_SelectedCell = mouseGridPos;
-
-        // Clear the main selection vector
-        m_SelectedCells.clear();
-
-        if (m_SelectionBrushSize <= 1)
-        {
-            return;
-        }
-
-        // Calculate the radius in cells directly from m_SelectionBrushSize
-        int radiusInCells = static_cast<int>(m_SelectionBrushSize - 1);  // Now it's directly in cells
-
-        // Temporary boolean grid to track selected cells
-        std::vector<std::vector<bool>> tempSelectedGrid(m_GridInfo.rows, std::vector<bool>(m_GridInfo.columns, false));
-
-        // Center of the selection brush in grid coordinates
-        glm::vec2 center = { m_SelectedCell.x + 0.5f, m_SelectedCell.y + 0.5f };
-
-        // Loop through all cells in the square defined by the selection brush
-        for (int dx = -radiusInCells; dx <= radiusInCells; ++dx)
-        {
-            for (int dy = -radiusInCells; dy <= radiusInCells; ++dy)
-            {
-                // Directly calculate the position of the cell being checked
-                glm::ivec2 cellPos = { m_SelectedCell.x + dx, m_SelectedCell.y + dy };
-
-                // Check bounds first
-                if (!IsWithinBounds(cellPos.y, cellPos.x)) continue;
-
-                // Center of the current cell
-                glm::vec2 cellCenter = { cellPos.x + 0.5f, cellPos.y + 0.5f };
-
-                // Calculate the squared distance from the center of the selection to the cell center
-                float dxSquared = (center.x - cellCenter.x) * (center.x - cellCenter.x);
-                float dySquared = (center.y - cellCenter.y) * (center.y - cellCenter.y);
-                float distanceSquared = dxSquared + dySquared;
-
-                // Check if the distance is within the radius (squared to avoid sqrt)
-                if (distanceSquared <= (radiusInCells * radiusInCells))
-                {
-                    // Check if the cell was already selected
-                    if (!tempSelectedGrid[cellPos.y][cellPos.x])
-                    {
-                        // If valid, add to the selected cells
-                        m_SelectedCells.push_back(cellPos);
-                        tempSelectedGrid[cellPos.y][cellPos.x] = true;  // Mark as selected
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        m_MouseIsInGrid = false;
-        m_SelectedCells.clear();
-    }
-
-}
-
-void Grid::RenderSelection(Window* window) const
+void Grid::RenderBrush(Window* window) const
 {
     if (!m_MouseIsInGrid) return;
-
-    if (m_SelectionBrushSize <= 1)
-    {
-        RenderDrawCell(window, m_SelectedCell);
-        return;
-    }
-
-
-    for (const glm::ivec2& selectedCell : m_SelectedCells)
-    {
-        RenderDrawCell(window, selectedCell);
-    }
-}
-
-void Grid::RenderDrawCell(Window* window, const glm::ivec2& selectedCell) const
-{
-    SDL_SetRenderDrawColor(window->GetRenderer(),
-        static_cast<Uint8>(m_SelectionColor.r),
-        static_cast<Uint8>(m_SelectionColor.g),
-        static_cast<Uint8>(m_SelectionColor.b),
-        static_cast<Uint8>(m_SelectionColor.a));
-
-    SDL_Rect rect;
-    rect.x = m_GridInfo.pos.x + selectedCell.x * m_GridInfo.cellSize;
-    rect.y = m_GridInfo.pos.y + selectedCell.y * m_GridInfo.cellSize;
-    rect.w = m_GridInfo.cellSize;
-    rect.h = m_GridInfo.cellSize;
-
-    SDL_RenderDrawRect(window->GetRenderer(), &rect);
 }
 
 void Grid::RenderGrid(Window* window) const

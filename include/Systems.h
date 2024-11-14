@@ -20,9 +20,18 @@ void MovementSystem(Grid& grid, float deltaTime)
                 auto& movableComp = std::get<MovableSolidComp>(element->definition->components.at("MovableSolid"));
 
                 // Apply gravity logic
+                // move down
                 if (x < grid.GetRows() - 1 && grid.IsEmpty(x + 1, y)) 
                 {
                     grid.MoveElement(x, y, x + 1, y);
+                }
+                else if (x < grid.GetRows() - 1 && y > 0 && grid.IsEmpty(x + 1, y - 1)) // move down left
+                {
+                    grid.MoveElement(x, y, x + 1, y - 1);
+                }
+                else if (x < grid.GetRows() - 1 && y < grid.GetColumns() && grid.IsEmpty(x + 1, y + 1)) // move down left
+                {
+                    grid.MoveElement(x, y, x + 1, y + 1);
                 }
             }
         }

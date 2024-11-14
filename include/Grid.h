@@ -52,12 +52,10 @@ public:
 
 	void ClearGrid();
 
-	void RenderSelection(Window* window) const;
+	void RenderBrush(Window* window) const;
+
 	void UpdateSelection();
-	inline const std::vector<glm::ivec2>& GetSelectedCells() const
-	{
-		return m_SelectedCells;
-	}
+
 	inline glm::ivec2 ConvertScreenToGrid(const glm::ivec2& screenPos) const
 	{
 		// Check if mouse position is within the bounding box of the grid
@@ -80,14 +78,10 @@ private:
 	std::vector<std::vector<ElementID>> m_Elements{};
 	std::unique_ptr<ElementRegistry> m_pElementRegistry{};
 
-	// Selection Settings
+	// Brush Settings
 	int m_SelectionBrushSize{1};
-	glm::ivec2 m_SelectedCell{};
-	std::vector<glm::ivec2> m_SelectedCells{};
-	glm::vec4 m_SelectionColor{ 0.f, 100.f, 0.f, 255.f };
-	// selection is dirty
+	glm::vec3 m_BrushColor{ 0.f, 100.f, 0.f };
 	bool m_MouseIsInGrid{};
-	bool m_SelectionIsDirty{};
 };
 
 #endif // !GRID_H
