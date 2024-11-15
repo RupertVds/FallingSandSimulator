@@ -100,8 +100,11 @@ void Grid::UpdateInput()
 	const glm::ivec2 gridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
 	if (gridMousePos == glm::ivec2{ -1, -1 })
 	{
+		m_MouseIsInGrid = false;
+		m_PreviousGridMousePos = gridMousePos;
 		return;
 	}
+	m_MouseIsInGrid = true;
 
 	// ALT CLICK TO SELECT NEW ELEMENT TYPE
 	if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_LALT) && InputManager::GetInstance().IsMouseButtonPressed(SDL_BUTTON_LEFT))
@@ -112,11 +115,16 @@ void Grid::UpdateInput()
 	// CLICK TO PLACE IT
 	else if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
 	{
-		// Draw a line of elements from the previous to the current position
-		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y) {
-			AddElementAt(x, y, m_ElementToDraw);
-			});
-		//AddElementAt(gridMousePos.x, gridMousePos.y, m_ElementToDraw);
+		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
+		{
+			m_PreviousGridMousePos = gridMousePos;
+		}
+
+		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
+			{
+				AddElementAt(x, y, m_ElementToDraw);
+			}
+		);
 	}
 
 	if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_RIGHT))
