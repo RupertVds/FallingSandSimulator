@@ -29,7 +29,7 @@ void MovementSystem(Grid& grid, float deltaTime)
                 {
                     grid.MoveElement(x, y, x + 1, y - 1);
                 }
-                else if (x < grid.GetRows() - 1 && y < grid.GetColumns() && grid.IsEmpty(x + 1, y + 1)) // move down left
+                else if (x < grid.GetRows() - 1 && y < grid.GetColumns() - 1 && grid.IsEmpty(x + 1, y + 1)) // move down left
                 {
                     grid.MoveElement(x, y, x + 1, y + 1);
                 }

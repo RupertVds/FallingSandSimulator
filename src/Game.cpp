@@ -17,9 +17,9 @@ Game::Game()
 
     // Register the CPU-based sand simulation as the default
     // grid with: pos: x=0;y=20 , rows=11, cols=20, cellsize=10
-    //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 80, 120, 8 }, m_pWindow));
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 40, 70, 16 }, m_pWindow));
+    //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 40, 70, 16 }, m_pWindow));
 }
 
 Game::~Game()
@@ -120,39 +120,6 @@ void Game::ProcessInput()
     }
 
     InputManager::GetInstance().Update();
-
-    //// Query the current mouse state at every frame
-    //int mouseX, mouseY;
-    //Uint32 mouseButtons = SDL_GetMouseState(&mouseX, &mouseY);  // Get the current mouse state and coordinates
-    //// Check if the left mouse button is pressed
-    //if (mouseButtons & SDL_BUTTON(SDL_BUTTON_LEFT))
-    //{
-    //    // Convert mouse position to grid coordinates
-    //    size_t gridX = static_cast<size_t>(mouseX);
-    //    size_t gridY = static_cast<size_t>(mouseY);
-    //    // Radius for the circular brush
-    //    int radius = m_BrushSize / 2;
-    //    // Iterate over a square bounding the circle, but only place particles inside the circle
-    //    for (int dx = -radius; dx <= radius; ++dx)
-    //    {
-    //        for (int dy = -radius; dy <= radius; ++dy)
-    //        {
-    //            // Calculate the distance from the center (gridX, gridY)
-    //            int distanceSquared = dx * dx + dy * dy;
-    //            // If the point is inside the radius (circle equation: x² + y² <= r²)
-    //            if (distanceSquared <= radius * radius)
-    //            {
-    //                size_t brushX = gridX + dx;
-    //                size_t brushY = gridY + dy;
-    //                // Place a particle if within grid bounds
-    //                if (brushX < m_pWindow->GetColumns() && brushY < m_pWindow->GetRows())
-    //                {
-    //                    //ServiceLocator::GetSandSimulator().PlaceParticle(brushX, brushY, std::make_unique<E_Sand>());
-    //                }
-    //            }
-    //        }
-    //    }
-    //}
 }
 
 void Game::Update()
