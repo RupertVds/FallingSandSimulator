@@ -8,18 +8,16 @@
 Game::Game()
     : m_pWindow(nullptr), m_IsRunning(true)
 {
-    //m_pWindow = new Window("RVDS - Falling Sand Simulator", 1280, 720);
-    m_pWindow = new Window("RVDS - Falling Sand Simulator", 1920, 1080);
+    m_pWindow = new Window("RVDS - Falling Sand Simulator", 1280, 720);
+    //m_pWindow = new Window("RVDS - Falling Sand Simulator", 1920, 1080);
     if (!m_pWindow->Init())
     {
         std::cerr << "Failed to initialize window." << std::endl;
         m_IsRunning = false;
     }
 
-    // Register the CPU-based sand simulation as the default
-    // grid with: pos: x=0;y=20 , rows=11, cols=20, cellsize=10
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, 1080/8, 1920/8, 8 }, m_pWindow));
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, m_pWindow->GetHeight()/8, m_pWindow->GetWidth() /8, 8 }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 80, 120, 8 }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 40, 70, 16 }, m_pWindow));
 }
@@ -35,7 +33,7 @@ void Game::Run()
     constexpr bool CAP_FPS{ true };
     constexpr float TARGETFPS{ 144.0f };
     constexpr double TARGET_FRAME_DURATION = 1.0 / TARGETFPS;
-    constexpr float SIMULATION_TIME_STEP = 1.0f / 360.0f;
+    constexpr float SIMULATION_TIME_STEP = 1.0f / 60.0f;
 
     float lag = 0.0f;
     float fpsAccumulator = 0.0f;

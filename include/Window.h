@@ -12,8 +12,8 @@ public:
     void Clear() const;
     void Update() const;
     SDL_Renderer* GetRenderer() const { return m_pRenderer; }
-    int GetColumns() const { return m_Width; }
-    int GetRows() const { return m_Height; }
+    int GetHeight() const { return m_Height; }
+    int GetWidth() const { return m_Width; }
 
 private:
     std::string m_Title;

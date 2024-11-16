@@ -16,6 +16,19 @@ ElementRegistry::ElementRegistry()
         } 
     };
     m_ElementTypes["Water"] = water;
+
+    ElementDefinition smoke{ "Smoke", 0x848884,
+        {
+            {"Gas", GasComp{5.f}}
+        }
+    };
+    m_ElementTypes["Smoke"] = smoke;
+
+    ElementDefinition wall{ "Wall", 0x808080,
+    {
+    }
+    };
+    m_ElementTypes["Wall"] = wall;
 }
 
 ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
@@ -31,7 +44,7 @@ ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
         return EMPTY_CELL;
     }
 
-    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f} };
+    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f}, false };
     return id;
 }
 
@@ -40,7 +53,7 @@ void ElementRegistry::RemoveElement(ElementID id)
     m_ElementData.erase(id);
 }
 
-const Element* ElementRegistry::GetElementData(ElementID id) const
+Element* ElementRegistry::GetElementData(ElementID id)
 {
     auto it = m_ElementData.find(id);
     return it != m_ElementData.end() ? &it->second : nullptr;

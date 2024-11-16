@@ -16,6 +16,11 @@ struct LiquidComp final
 	float flowRate{ 0.5f };
 };
 
+struct GasComp final
+{
+	float lifetime{1.f};
+};
+
 struct FlammableComp final
 {
 	float ignitionTemp{ 1.f }; // temperature at which the element turns into fire

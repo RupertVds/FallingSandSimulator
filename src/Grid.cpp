@@ -44,9 +44,6 @@ void Grid::UpdateInput()
 	}
 	m_MouseIsInGrid = true;
 
-
-
-
 	// ALT CLICK TO SELECT NEW ELEMENT TYPE
 	if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_LALT) && InputManager::GetInstance().IsMouseButtonPressed(SDL_BUTTON_LEFT))
 	{
@@ -55,6 +52,20 @@ void Grid::UpdateInput()
 	}
 	// CLICK TO PLACE IT
 	else if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
+	{
+		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
+		{
+			m_PreviousGridMousePos = gridMousePos;
+		}
+
+		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
+			{
+				AddElementBrushed(x, y, m_ElementToDraw);
+			}
+		);
+	}
+
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_RETURN))
 	{
 		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
 		{
@@ -93,6 +104,23 @@ void Grid::UpdateInput()
 			--m_BrushSize;
 		}
 	}
+	
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_0))
+	{
+		m_ElementToDraw = "Wall";
+	}
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_1))
+	{
+		m_ElementToDraw = "Sand";
+	}
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_2))
+	{
+		m_ElementToDraw = "Water";
+	}
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_4))
+	{
+		m_ElementToDraw = "Smoke";
+	}
 
 	m_PreviousGridMousePos = gridMousePos;
 }
@@ -118,11 +146,45 @@ void Grid::Render(Window* window) const
 void Grid::RenderBrush(Window* window) const
 {
 	if (!m_MouseIsInGrid) return;
+
+	// Get mouse position in grid space
+	const glm::ivec2 gridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
+
+	// Define grid properties
+	int gridOriginX = m_GridInfo.pos.x; // X position of grid origin on screen
+	int gridOriginY = m_GridInfo.pos.y; // Y position of grid origin on screen
+	int cellSize = m_GridInfo.cellSize;       // Size of a single cell in pixels
+
+	// Calculate the center of the brush in screen space
+	int screenCenterX = gridOriginX + gridMousePos.x * cellSize + cellSize / 2;
+	int screenCenterY = gridOriginY + gridMousePos.y * cellSize + cellSize / 2;
+
+	// Circle properties
+	float radius = m_BrushSize * cellSize; // Radius in pixels
+	int segments = 100;                    // Number of segments to approximate the circle
+
+	// Set the draw color
+	SDL_SetRenderDrawColor(window->GetRenderer(), 255, 255, 255, 128);
+
+	// Calculate and draw the circle using line segments
+	for (int i = 0; i < segments; ++i)
+	{
+		float theta1 = (2.0f * M_PI * i) / segments;
+		float theta2 = (2.0f * M_PI * (i + 1)) / segments;
+
+		int x1 = static_cast<int>(screenCenterX + radius * cos(theta1));
+		int y1 = static_cast<int>(screenCenterY + radius * sin(theta1));
+
+		int x2 = static_cast<int>(screenCenterX + radius * cos(theta2));
+		int y2 = static_cast<int>(screenCenterY + radius * sin(theta2));
+
+		SDL_RenderDrawLine(window->GetRenderer(), y1, x1, y2, x2);
+	}
 }
 
 void Grid::RenderGrid(Window* window) const
 {
-	return;
+	//return;
 	SDL_SetRenderDrawColor(window->GetRenderer(), 100, 0, 0, 255); // Red color for grid lines
 
 	// Draw vertical grid lines
@@ -203,7 +265,7 @@ inline ElementID Grid::GetElementID(int x, int y) const
 	return m_Elements[x][y];
 }
 
-inline const Element* Grid::GetElementData(int x, int y) const
+inline Element* Grid::GetElementData(int x, int y) const
 {
 	ElementID id = GetElementID(x, y);
 	return id != EMPTY_CELL ? m_pElementRegistry->GetElementData(id) : nullptr;
@@ -308,6 +370,11 @@ void Grid::MoveElement(int x, int y, int newX, int newY)
 {
 	m_Elements[newX][newY] = m_Elements[x][y];
 	m_Elements[x][y] = EMPTY_CELL;
+}
+
+void Grid::SwapElements(int x, int y, int newX, int newY)
+{
+	std::swap(m_Elements[x][y], m_Elements[newX][newY]);
 }
 
 void Grid::ClearGrid()

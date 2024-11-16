@@ -39,4 +39,6 @@ void BresenhamLine(const glm::ivec2& start, const glm::ivec2& end, Func&& func)
     }
 }
 
+
+
 #endif // UTILS_H
