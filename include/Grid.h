@@ -26,20 +26,6 @@ public:
 	Grid& operator=(Grid&& other) = delete;
 public:
 	void Init();
-	int GetRows() const { return m_GridInfo.rows; };
-	int GetColumns() const { return m_GridInfo.columns; };
-
-	inline ElementID GetElementID(int x, int y) const;
-	inline const Element* GetElementData(int x, int y) const;
-
-	void AddElementAt(int x, int y, const std::string& elementTypeName);
-	void RemoveElementAt(int x, int y);
-	inline glm::ivec2 ConvertScreenToGrid(const glm::ivec2& screenPos) const;
-
-	inline bool IsWithinBounds(int x, int y) const;
-	inline bool IsEmpty(int x, int y) const;
-
-	void MoveElement(int x, int y, int newX, int newY);
 
 	void Update();
 	void FixedUpdate();
@@ -52,6 +38,21 @@ public:
 	void RenderElements(Window* window) const;
 	void RenderBrush(Window* window) const;
 
+	void AddElementBrushed(int x, int y, const std::string& elementTypeName);
+	void AddElementAt(int x, int y, const std::string& elementTypeName);
+	void RemoveElementBrushed(int x, int y);
+	void RemoveElementAt(int x, int y);
+	inline glm::ivec2 ConvertScreenToGrid(const glm::ivec2& screenPos) const;
+
+	int GetRows() const { return m_GridInfo.rows; };
+	int GetColumns() const { return m_GridInfo.columns; };
+
+	inline ElementID GetElementID(int x, int y) const;
+	inline const Element* GetElementData(int x, int y) const;
+	inline bool IsWithinBounds(int x, int y) const;
+	inline bool IsEmpty(int x, int y) const;
+
+	void MoveElement(int x, int y, int newX, int newY);
 	void ClearGrid();
 private:
 	GridInfo m_GridInfo{};
@@ -60,7 +61,7 @@ private:
 	std::unique_ptr<ElementRegistry> m_pElementRegistry{};
 
 	// Brush Settings
-	int m_SelectionBrushSize{1};
+	int m_BrushSize{1};
 	glm::vec3 m_BrushColor{ 0.f, 100.f, 0.f };
 
 	glm::ivec2 m_PreviousGridMousePos{};

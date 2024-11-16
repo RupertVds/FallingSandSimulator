@@ -14,6 +14,7 @@ void MovementSystem(Grid& grid, float deltaTime)
                 continue; // Skip empty cells
             }
 
+            // MOVABLE SOLIDS
             const Element* element = grid.GetElementData(x, y);
             if (element && element->definition->components.count("MovableSolid"))
             {
@@ -34,6 +35,30 @@ void MovementSystem(Grid& grid, float deltaTime)
                     grid.MoveElement(x, y, x + 1, y + 1);
                 }
             }
+
+
+            // LIQUIDS
+            const Element* element = grid.GetElementData(x, y);
+            if (element && element->definition->components.count("Liquid"))
+            {
+                auto& movableComp = std::get<LiquidComp>(element->definition->components.at("Liquid"));
+
+                // Apply gravity logic
+                // move down
+                if (x < grid.GetRows() - 1 && grid.IsEmpty(x + 1, y))
+                {
+                    grid.MoveElement(x, y, x + 1, y);
+                }
+                else if (x < grid.GetRows() - 1 && y > 0 && grid.IsEmpty(x + 1, y - 1)) // move down left
+                {
+                    grid.MoveElement(x, y, x + 1, y - 1);
+                }
+                else if (x < grid.GetRows() - 1 && y < grid.GetColumns() - 1 && grid.IsEmpty(x + 1, y + 1)) // move down left
+                {
+                    grid.MoveElement(x, y, x + 1, y + 1);
+                }
+            }
+
         }
     }
 }

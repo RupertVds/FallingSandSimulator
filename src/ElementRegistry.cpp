@@ -1,14 +1,18 @@
 #include "ElementRegistry.h"
+#include <iostream>
 
 ElementRegistry::ElementRegistry() 
 {
-    ElementDefinition sand{ "Sand", 0xD2B48C, {{"MovableSolid", MovableSolidComp{0.3f, 1.0f}}} };
+    ElementDefinition sand{ "Sand", 0xD2B48C, {
+        {
+            "MovableSolid", MovableSolidComp{0.3f, 1.0f}}
+        } 
+    };
     m_ElementTypes["Sand"] = sand;
 
     ElementDefinition water{ "Water", 0x3498DB, 
         {
-            {"Liquid", LiquidComp{0.1f, 0.5f}},
-            {"MovableSolid", MovableSolidComp{0.3f, 1.0f}}
+            {"Liquid", LiquidComp{0.1f, 0.5f}}
         } 
     };
     m_ElementTypes["Water"] = water;
@@ -18,7 +22,14 @@ ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
 {
     ElementID id = m_NextElementID++;
     auto it = m_ElementTypes.find(elementTypeName);
-    if (it == m_ElementTypes.end()) return EMPTY_CELL;
+    assert(it != m_ElementTypes.end() && "Element type not found! Ensure the type is correctly registered.");
+
+    // If assertions are disabled
+    if (it == m_ElementTypes.end())
+    {
+        std::cout << "Warning: Element \"" + elementTypeName + "\" not found! Returning EMPTY_CELL.\n";
+        return EMPTY_CELL;
+    }
 
     m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f} };
     return id;
