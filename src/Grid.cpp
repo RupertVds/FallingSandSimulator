@@ -18,7 +18,7 @@ Grid::~Grid()
 
 void Grid::Init()
 {
-	m_ElementToDraw = "Sand";
+	m_ElementToDraw = "";
 
 	AddElementAt(0, 0, "Sand");
 	AddElementAt(0, 1, "Sand");

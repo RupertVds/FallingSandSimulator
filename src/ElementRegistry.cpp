@@ -17,6 +17,9 @@ ElementRegistry::ElementRegistry()
 ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
 {
     ElementID id = m_NextElementID++;
+    auto it = m_ElementTypes.find(elementTypeName);
+    if (it == m_ElementTypes.end()) return EMPTY_CELL;
+
     m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f} };
     return id;
 }
