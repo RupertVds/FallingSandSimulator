@@ -51,6 +51,7 @@ public:
 	inline Element* GetElementData(int x, int y) const;
 	inline bool IsWithinBounds(int x, int y) const;
 	inline bool IsEmpty(int x, int y) const;
+	inline bool IsEvenFrame() const;
 
 	void MoveElement(int x, int y, int newX, int newY);
 	void SwapElements(int x, int y, int newX, int newY);
@@ -68,6 +69,8 @@ private:
 	glm::ivec2 m_PreviousGridMousePos{};
 	std::string m_ElementToDraw{};
 	bool m_MouseIsInGrid{};
+
+	uint8_t m_FrameCounter{};
 };
 
 #endif // !GRID_H

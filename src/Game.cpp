@@ -17,7 +17,8 @@ Game::Game()
     }
 
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
-    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, m_pWindow->GetHeight()/8, m_pWindow->GetWidth() /8, 8 }, m_pWindow));
+    int cellSize{ 5 };
+    ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, m_pWindow->GetHeight() / cellSize, m_pWindow->GetWidth() / cellSize, cellSize }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 80, 120, 8 }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 40, 70, 16 }, m_pWindow));
 }
@@ -33,7 +34,7 @@ void Game::Run()
     constexpr bool CAP_FPS{ true };
     constexpr float TARGETFPS{ 144.0f };
     constexpr double TARGET_FRAME_DURATION = 1.0 / TARGETFPS;
-    constexpr float SIMULATION_TIME_STEP = 1.0f / 60.0f;
+    constexpr float SIMULATION_TIME_STEP = 1.0f / 200.0f;
 
     float lag = 0.0f;
     float fpsAccumulator = 0.0f;
@@ -41,7 +42,6 @@ void Game::Run()
     constexpr float FPS_UPDATE_INTERVAL = 1.0f;  // Update and print FPS every second
 
     SDL_GL_SetSwapInterval(USE_VSYNC ? 1 : 0);
-    
 
     auto lastFrameTime = std::chrono::high_resolution_clock::now();
 

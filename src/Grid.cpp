@@ -19,12 +19,7 @@ Grid::~Grid()
 void Grid::Init()
 {
 	m_ElementToDraw = "Sand";
-
-	AddElementAt(0, 0, "Sand");
-	AddElementAt(0, 1, "Sand");
-	AddElementAt(1, 0, "Water");
-	AddElementAt(1, 1, "Water");
-
+	srand(std::time(nullptr));
 	m_PreviousGridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
 }
 
@@ -128,11 +123,13 @@ void Grid::UpdateInput()
 void Grid::FixedUpdate()
 {
 	UpdateElements();
+
+	++m_FrameCounter;
 }
 
 void Grid::UpdateElements()
 {
-	MovementSystem(*this, 0.f);
+	UpdateGridElements(*this, 0.f);
 	HeatSystem(*this, 0.f);
 }
 
@@ -184,7 +181,7 @@ void Grid::RenderBrush(Window* window) const
 
 void Grid::RenderGrid(Window* window) const
 {
-	//return;
+	return;
 	SDL_SetRenderDrawColor(window->GetRenderer(), 100, 0, 0, 255); // Red color for grid lines
 
 	// Draw vertical grid lines
@@ -279,6 +276,11 @@ inline bool Grid::IsWithinBounds(int x, int y) const
 inline bool Grid::IsEmpty(int x, int y) const
 {
 	return GetElementID(x, y) == EMPTY_CELL;
+}
+
+inline bool Grid::IsEvenFrame() const
+{
+	return m_FrameCounter % 2 == 0;
 }
 
 void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName)
