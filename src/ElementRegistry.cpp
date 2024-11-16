@@ -44,7 +44,10 @@ ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
         return EMPTY_CELL;
     }
 
-    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f}, false };
+    // Generate a random tint adjustment (-15 to +15)
+    int8_t randomTint = static_cast<int8_t>((rand() % 31) - 15);
+
+    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f}, false, randomTint };
     return id;
 }
 

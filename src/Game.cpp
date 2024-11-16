@@ -34,7 +34,7 @@ void Game::Run()
     constexpr bool CAP_FPS{ true };
     constexpr float TARGETFPS{ 144.0f };
     constexpr double TARGET_FRAME_DURATION = 1.0 / TARGETFPS;
-    constexpr float SIMULATION_TIME_STEP = 1.0f / 200.0f;
+    constexpr float SIMULATION_TIME_STEP = 1.0f / 120.0f;
 
     float lag = 0.0f;
     float fpsAccumulator = 0.0f;

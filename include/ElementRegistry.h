@@ -26,6 +26,7 @@ struct Element
 	const ElementDefinition* definition{}; // Pointer to the shared particle type definition
 	glm::vec2 velocity{};
 	bool hasMoved{};
+	int8_t tint; // Tint adjustment (-128 to 127)
 };
 
 class ElementRegistry final

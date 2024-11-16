@@ -5,6 +5,7 @@
 #include "ServiceLocator.h"
 #include <Systems.h>
 #include "Utils.h"
+#include <algorithm>
 
 Grid::Grid(const GridInfo& gridInfo)
 	: m_GridInfo(gridInfo), m_pElementRegistry(std::make_unique<ElementRegistry>())
@@ -245,7 +246,28 @@ void Grid::RenderElements(Window* window) const
 				if (!IsEmpty(x, y))
 				{
 					const Element* element = GetElementData(x, y);
-					uint32_t color = element->definition->color;
+					uint32_t baseColor = element->definition->color;
+
+					// apply element's tint to color
+									// Extract RGB channels
+					uint8_t r = (baseColor >> 16) & 0xFF;
+					uint8_t g = (baseColor >> 8) & 0xFF;
+					uint8_t b = baseColor & 0xFF;
+
+					// Adjust channels based on tint
+					auto adjustColor = [tint = element->tint](uint8_t channel) -> uint8_t {
+						int newChannel = std::clamp(static_cast<int>(channel) + tint, 0, 255);
+						return static_cast<uint8_t>(newChannel);
+						};
+
+					r = adjustColor(r);
+					g = adjustColor(g);
+					b = adjustColor(b);
+
+					// Combine adjusted channels into a single color
+					uint32_t color = (r << 16) | (g << 8) | b;
+
+
 					// Set the corresponding "pixel" in the texture
 					pixelData[x * (pitch / 4) + y] = color;
 				}
