@@ -55,7 +55,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride);
 			}
 		);
 	}
@@ -69,7 +69,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride);
 			}
 		);
 	}
@@ -115,6 +115,20 @@ void Grid::UpdateInput()
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_4))
 	{
 		m_ElementToDraw = "Smoke";
+	}
+
+
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
+	{
+		m_BrushOverride = !m_BrushOverride;
+		if (m_BrushOverride)
+		{
+			std::cout << "Brush Overriding is ON!\n";
+		}
+		else
+		{
+			std::cout << "Brush Overriding is OFF!\n";
+		}
 	}
 
 	m_PreviousGridMousePos = gridMousePos;
@@ -283,7 +297,7 @@ inline bool Grid::IsEvenFrame() const
 	return m_FrameCounter % 2 == 0;
 }
 
-void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName)
+void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName, bool override)
 {
 	float radius = m_BrushSize - 0.5f; // Fractional brush size
 
@@ -300,8 +314,9 @@ void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName)
 		{
 			// Check if the cell is within the circle
 			float distance = std::sqrt((i - x) * (i - x) + (j - y) * (j - y));
-			if (distance <= radius && IsWithinBounds(i, j) && IsEmpty(i, j))
+			if (distance <= radius && IsWithinBounds(i, j) && (override ? true : IsEmpty(i, j)))
 			{
+				if (override) RemoveElementAt(i, j);
 				AddElementAt(i, j, elementTypeName);
 			}
 		}

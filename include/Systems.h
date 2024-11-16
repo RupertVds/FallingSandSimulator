@@ -92,13 +92,33 @@ void UpdateGas(Element* element, int x, Grid& grid, int y)
         {
             grid.MoveElement(x, y, x - 1, y + 1);
         }
-        else if (y < grid.GetColumns() - 1 && grid.IsEmpty(x, y + 1)) // move right
+        else
         {
-            grid.MoveElement(x, y, x, y + 1);
-        }
-        else if (y > 0 && grid.IsEmpty(x, y - 1)) // move left
-        {
-            grid.MoveElement(x, y, x, y - 1);
+            // Randomize horizontal preference to simulate natural liquid spread
+            bool moveRightFirst = (rand() % 2 == 0);
+
+            if (moveRightFirst)
+            {
+                if (y < grid.GetColumns() - 1 && grid.IsEmpty(x, y + 1)) // Try move right
+                {
+                    grid.MoveElement(x, y, x, y + 1);
+                }
+                else if (y > 0 && grid.IsEmpty(x, y - 1)) // Fallback: move left
+                {
+                    grid.MoveElement(x, y, x, y - 1);
+                }
+            }
+            else
+            {
+                if (y > 0 && grid.IsEmpty(x, y - 1)) // Try move left
+                {
+                    grid.MoveElement(x, y, x, y - 1);
+                }
+                else if (y < grid.GetColumns() - 1 && grid.IsEmpty(x, y + 1)) // Fallback: move right
+                {
+                    grid.MoveElement(x, y, x, y + 1);
+                }
+            }
         }
     }
 }
