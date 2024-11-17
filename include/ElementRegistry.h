@@ -9,7 +9,7 @@
 
 
 // I erase the type so we can store all kinds of components
-using Component = std::variant<MovableSolidComp, FlammableComp, HeatSourceComp, LiquidComp, GasComp>;
+using Component = std::variant<SolidComp, LiquidComp, GasComp, GravityComp, FlammableComp>;
 
 struct ElementDefinition
 {

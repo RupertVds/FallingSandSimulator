@@ -4,31 +4,32 @@
 // Components are just data for elements
 // systems will use this data to give actual functionality
 
-struct MovableSolidComp final
+struct SolidComp
 {
-	float mass{ 1.f }; // multiplied by gravity to know how fast it should fall
-	float friction{ 1.f }; // slowdown once we fall on the ground
+    float density{};
 };
 
-struct LiquidComp final
+struct LiquidComp
 {
-	float viscosity{ 1.f };
-	float dispersionRate{ 0.5f };
+    float density{};
+    float dispersionRate{}; // Horizontal spread range
 };
 
-struct GasComp final
+struct GasComp
 {
-	float lifetime{1.f};
+    float density{};
+    float riseRate{}; // Upward velocity
 };
 
-struct FlammableComp final
+struct GravityComp
 {
-	float ignitionTemp{ 1.f }; // temperature at which the element turns into fire
+    float gravityScale{}; // Strength of gravity effect
 };
 
-struct HeatSourceComp final
+struct FlammableComp
 {
-	float temperature{ 1.f }; // temperature at which the element affects nearby elements
+    float ignitionTemp{}; // Temperature at which the element ignites
+    float burnRate{};     // How quickly the element burns
 };
 
 #endif // !COMPONENTS_H

@@ -3,16 +3,18 @@
 
 ElementRegistry::ElementRegistry() 
 {
-    ElementDefinition sand{ "Sand", 0xD2B48C, {
+    ElementDefinition sand{ "Sand", 0xD2B48C, 
         {
-            "MovableSolid", MovableSolidComp{0.3f, 1.0f}}
+        {"Solid", SolidComp{1.f}},
+        {"Gravity", GravityComp{2.f}}
         } 
     };
     m_ElementTypes["Sand"] = sand;
 
     ElementDefinition water{ "Water", 0x3498DB, 
         {
-            {"Liquid", LiquidComp{0.1f, 10.f}}
+            {"Liquid", LiquidComp{0.1f, 15.f}},
+            {"Gravity", GravityComp{2.f}}
         } 
     };
     m_ElementTypes["Water"] = water;
