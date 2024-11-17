@@ -13,7 +13,7 @@ struct MovableSolidComp final
 struct LiquidComp final
 {
 	float viscosity{ 1.f };
-	float flowRate{ 0.5f };
+	float dispersionRate{ 0.5f };
 };
 
 struct GasComp final

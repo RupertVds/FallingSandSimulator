@@ -124,53 +124,117 @@ void UpdateGas(Element* element, int x, Grid& grid, int y)
     }
 }
 
-void UpdateLiquid(Element* element, int x, Grid& grid, int y)
+void UpdateLiquidNeighbors(Element* element, int x, int y, Grid& grid, bool& blocked, float dispersionRate)
 {
-    if (auto* movableComp = GetComponent<LiquidComp>(element, "Liquid"))
+    if (grid.IsWithinBounds(x, y))
     {
-        // Apply gravity logic for Liquid
+        // Step 1: Try moving down directly
         if (x < grid.GetRows() - 1 && grid.IsEmpty(x + 1, y))
         {
             grid.MoveElement(x, y, x + 1, y);
+            return; // Successful downward movement
         }
-        else if (x < grid.GetRows() - 1 && y > 0 && grid.IsEmpty(x + 1, y - 1)) // move down left
+
+        // Step 2: Try diagonal downward movement
+        bool moveRightFirst = (rand() % 2 == 0);
+
+        auto tryDiagonal = [&](int dx, int dy) -> bool {
+            int newX = x + dx, newY = y + dy;
+            if (grid.IsWithinBounds(newX, newY) && grid.IsEmpty(newX, newY))
+            {
+                grid.MoveElement(x, y, newX, newY);
+                return true; // Successful diagonal movement
+            }
+            return false;
+            };
+
+        if (moveRightFirst)
         {
-            grid.MoveElement(x, y, x + 1, y - 1);
-        }
-        else if (x < grid.GetRows() - 1 && y < grid.GetColumns() - 1 && grid.IsEmpty(x + 1, y + 1)) // move down right
-        {
-            grid.MoveElement(x, y, x + 1, y + 1);
+            if (tryDiagonal(1, 1)) return; // Down-right
+            if (tryDiagonal(1, -1)) return; // Down-left
         }
         else
         {
-            // Randomize horizontal preference to simulate natural liquid spread
-            bool moveRightFirst = (rand() % 2 == 0);
+            if (tryDiagonal(1, -1)) return; // Down-left
+            if (tryDiagonal(1, 1)) return; // Down-right
+        }
 
+        // Step 3: If downward movement fails, attempt horizontal dispersion
+        auto tryHorizontal = [&](int dy) -> bool {
+            int newY = y + dy;
+            if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
+            {
+                grid.MoveElement(x, y, x, newY);
+                return true; // Successful horizontal movement
+            }
+            return false;
+            };
+
+        // Dispersion logic: Try spreading left and right up to the defined rate
+        int maxDispersion = static_cast<int>(dispersionRate);
+        for (int step = 1; step <= maxDispersion; ++step)
+        {
             if (moveRightFirst)
             {
-                if (y < grid.GetColumns() - 1 && grid.IsEmpty(x, y + 1)) // Try move right
-                {
-                    grid.MoveElement(x, y, x, y + 1);
-                }
-                else if (y > 0 && grid.IsEmpty(x, y - 1)) // Fallback: move left
-                {
-                    grid.MoveElement(x, y, x, y - 1);
-                }
+                if (tryHorizontal(step)) return; // Spread right
+                if (tryHorizontal(-step)) return; // Spread left
             }
             else
             {
-                if (y > 0 && grid.IsEmpty(x, y - 1)) // Try move left
-                {
-                    grid.MoveElement(x, y, x, y - 1);
-                }
-                else if (y < grid.GetColumns() - 1 && grid.IsEmpty(x, y + 1)) // Fallback: move right
-                {
-                    grid.MoveElement(x, y, x, y + 1);
-                }
+                if (tryHorizontal(-step)) return; // Spread left
+                if (tryHorizontal(step)) return; // Spread right
             }
+        }
+
+        // Step 4: If no movement occurred, mark as blocked
+        blocked = true;
+    }
+}
+
+
+void UpdateLiquid(Element* element, int x, Grid& grid, int y)
+{
+    if (auto* liquidComp = GetComponent<LiquidComp>(element, "Liquid"))
+    {
+        const float dispersionRate = liquidComp->dispersionRate; // Horizontal spread rate
+        const float gravity = 9.8f * 2; // Adjust gravity strength for liquids
+        const float fixedTimeStep = ServiceLocator::GetSandSimulator().GetFixedTimeStep();
+
+        // Apply gravity to vertical velocity
+        element->velocity.x += gravity * fixedTimeStep;
+
+        // Determine target position
+        glm::ivec2 startPos = { x, y };
+        glm::ivec2 targetPos = {
+            x + static_cast<int>(element->velocity.x), // Downward movement (gravity-driven)
+            y
+        };
+
+        // Clamp target position within grid bounds
+        targetPos.x = std::clamp(targetPos.x, 0, grid.GetRows() - 1);
+        targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
+
+        // Track if movement was blocked
+        bool blocked = false;
+
+        // Step 1: Apply Movable Solid Behavior (Gravity-Driven)
+        BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
+            {
+                // Early exit if movement succeeds
+                if (!blocked)
+                {
+                    UpdateLiquidNeighbors(element, currentX, currentY, grid, blocked, dispersionRate);
+                }
+            });
+
+        // Step 2: Reset velocity if completely blocked
+        if (blocked)
+        {
+            element->velocity.x = 0.0f;
         }
     }
 }
+
 
 void MovableSolidCheckNeighbors(Element* element, int x, int y, Grid& grid, bool& blocked)
 {

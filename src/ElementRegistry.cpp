@@ -12,7 +12,7 @@ ElementRegistry::ElementRegistry()
 
     ElementDefinition water{ "Water", 0x3498DB, 
         {
-            {"Liquid", LiquidComp{0.1f, 0.5f}}
+            {"Liquid", LiquidComp{0.1f, 10.f}}
         } 
     };
     m_ElementTypes["Water"] = water;
