@@ -14,6 +14,8 @@ public:
 	virtual void FixedUpdate() = 0;
 	virtual void Render() const = 0;
 	virtual bool IsActive() const = 0;
+	virtual float GetFixedTimeStep() const = 0;
+	virtual void SetFixedTimeStep(float fixedTimeStep) = 0;
 };
 
 #endif // !ISANDSIMULATION_H

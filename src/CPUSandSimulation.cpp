@@ -9,9 +9,9 @@
 #include "ServiceLocator.h"
 
 CPUSandSimulation::CPUSandSimulation(const GridInfo& gridInfo, Window* window)
-	:
-    m_pGrid{std::make_unique<Grid>( gridInfo )},
-    m_pWindow{window}
+    :
+    m_pGrid{ std::make_unique<Grid>(gridInfo) },
+    m_pWindow{ window }
 {
 	// Check if width and height are valid
 	if (gridInfo.rows <= 0 || gridInfo.columns <= 0)
@@ -26,11 +26,6 @@ void CPUSandSimulation::Init()
 {
     m_pGrid->ClearGrid();
     m_pGrid->Init();
-}
-
-bool CPUSandSimulation::IsActive() const
-{
-    return m_IsSimulating;
 }
 
 void CPUSandSimulation::Update()
@@ -70,4 +65,19 @@ void CPUSandSimulation::FixedUpdate()
 void CPUSandSimulation::Render() const
 {
     m_pGrid->Render(m_pWindow);
+}
+
+bool CPUSandSimulation::IsActive() const
+{
+    return m_IsSimulating;
+}
+
+float CPUSandSimulation::GetFixedTimeStep() const
+{
+    return m_FixedTimeStep;
+}
+
+void CPUSandSimulation::SetFixedTimeStep(float fixedTimeStep)
+{
+    m_FixedTimeStep = fixedTimeStep;
 }

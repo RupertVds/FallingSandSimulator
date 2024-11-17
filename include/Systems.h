@@ -2,6 +2,7 @@
 #define SYSTEMS_H
 
 #include "Utils.h"
+#include <algorithm>
 
 // these are all systems that are applied on the components of the elements
 template <typename ComponentType>
@@ -27,7 +28,7 @@ void UpdateLiquid(Element* element, int x, Grid& grid, int y);
 
 void UpdateGas(Element* element, int x, Grid& grid, int y);
 
-void UpdateGridElements(Grid& grid, float deltaTime)
+void UpdateGridElements(Grid& grid)
 {
     for (int x = grid.GetRows() - 1; x >= 0; --x) 
     {
@@ -171,25 +172,96 @@ void UpdateLiquid(Element* element, int x, Grid& grid, int y)
     }
 }
 
+void MovableSolidCheckNeighbors(Element* element, int x, int y, Grid& grid, bool& blocked)
+{
+    if (grid.IsWithinBounds(x, y))
+    {
+        // Check if the element below (downwards) is empty or has a liquid component
+        if (x < grid.GetRows() - 1 && (grid.IsEmpty(x + 1, y) || HasComponent<LiquidComp>(grid.GetElementData(x + 1, y), "Liquid")))
+        {
+            grid.SwapElements(x, y, x + 1, y); // Move down
+        }
+        else
+        {
+            // Randomize horizontal preference to simulate natural spread
+            bool moveRightFirst = (rand() % 2 == 0);
+
+            // Check movement directions: down-left, down-right
+            auto tryMove = [&](int dx, int dy) {
+                if (x < grid.GetRows() - 1 && y + dy >= 0 && y + dy < grid.GetColumns())
+                {
+                    if (grid.IsEmpty(x + 1, y + dy) || HasComponent<LiquidComp>(grid.GetElementData(x + 1, y + dy), "Liquid"))
+                    {
+                        grid.SwapElements(x, y, x + 1, y + dy); // Move diagonally
+                        return true;
+                    }
+                }
+                return false;
+                };
+
+            // Try down-left, then down-right based on the random flag
+            if (moveRightFirst)
+            {
+                if (!tryMove(-1, -1)) // down-left
+                    blocked = true; // No movement
+                else if (!tryMove(1, 1)) // down-right
+                    blocked = true;
+            }
+            else
+            {
+                if (!tryMove(1, 1)) // down-right
+                    blocked = true; // No movement
+                else if (!tryMove(-1, -1)) // down-left
+                    blocked = true;
+            }
+        }
+    }
+}
+
 void UpdateMovableSolid(Element* element, int x, Grid& grid, int y)
 {
     if (auto* movableComp = GetComponent<MovableSolidComp>(element, "MovableSolid"))
     {
-        // Apply gravity logic for MovableSolid
-        if (x < grid.GetRows() - 1 && (grid.IsEmpty(x + 1, y) || GetComponent<LiquidComp>(grid.GetElementData(x + 1, y), "Liquid")))
+        const float fixedTimeStep = ServiceLocator::GetSandSimulator().GetFixedTimeStep();
+        constexpr float gravity = 9.8f * 3;
+
+        element->velocity.x += gravity * fixedTimeStep;
+
+        // Calculate the target position based on current velocity
+        glm::ivec2 startPos = { x, y };
+        glm::ivec2 targetPos = {
+            x + static_cast<int>(element->velocity.x), // Vertical movement (rows)
+            y + static_cast<int>(element->velocity.y)  // Vertical movement (columns)
+        };
+
+        // Clamp target position to grid bounds
+        targetPos.x = std::clamp(targetPos.x, 0, grid.GetRows() - 1);
+        targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
+
+        // Use Bresenham's line to check for available positions from start to target
+        bool blocked = false;
+        BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
+            {
+                // Cache the result of grid.IsEmpty() to avoid multiple calls to grid.IsEmpty()
+                bool isEmpty = grid.IsEmpty(currentX, currentY);
+                Element* currentElement = isEmpty ? nullptr : grid.GetElementData(currentX, currentY);
+
+                // If the cell is not empty, perform the movement checks
+                if (currentElement && !isEmpty)
+                {
+                    MovableSolidCheckNeighbors(element, currentX, currentY, grid, blocked);
+                }
+            });
+
+        // Reset velocity if blocked
+        if (blocked)
         {
-            grid.SwapElements(x, y, x + 1, y);
-        }
-        else if (x < grid.GetRows() - 1 && y > 0 && (grid.IsEmpty(x + 1, y - 1) || GetComponent<LiquidComp>(grid.GetElementData(x + 1, y - 1), "Liquid"))) // move down left
-        {
-            grid.SwapElements(x, y, x + 1, y - 1);
-        }
-        else if (x < grid.GetRows() - 1 && y < grid.GetColumns() - 1 && (grid.IsEmpty(x + 1, y + 1) || GetComponent<LiquidComp>(grid.GetElementData(x + 1, y + 1), "Liquid"))) // move down right
-        {
-            grid.SwapElements(x, y, x + 1, y + 1);
+            element->velocity.x = 0.0f;
         }
     }
 }
+
+
 
 void HeatSystem(Grid& grid, float deltaTime)
 {

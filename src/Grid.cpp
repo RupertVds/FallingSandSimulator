@@ -20,8 +20,15 @@ Grid::~Grid()
 void Grid::Init()
 {
 	m_ElementToDraw = "Sand";
-	srand(std::time(nullptr));
 	m_PreviousGridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
+
+	//for (int x = 0; x < this->GetRows(); ++x)
+	//{
+	//	for (int y = 0; y < this->GetColumns(); ++y)
+	//	{
+	//		AddElementAt(x, y, "Water");
+	//	}
+	//}
 }
 
 void Grid::Update()
@@ -144,14 +151,13 @@ void Grid::FixedUpdate()
 
 void Grid::UpdateElements()
 {
-	UpdateGridElements(*this, 0.f);
-	HeatSystem(*this, 0.f);
+	UpdateGridElements(*this);
 }
 
 void Grid::Render(Window* window) const
 {
 	RenderElements(window);
-	RenderGrid(window);
+	//RenderGrid(window);
 	RenderBrush(window);
 }
 
@@ -196,7 +202,6 @@ void Grid::RenderBrush(Window* window) const
 
 void Grid::RenderGrid(Window* window) const
 {
-	return;
 	SDL_SetRenderDrawColor(window->GetRenderer(), 100, 0, 0, 255); // Red color for grid lines
 
 	// Draw vertical grid lines
@@ -249,7 +254,7 @@ void Grid::RenderElements(Window* window) const
 					uint32_t baseColor = element->definition->color;
 
 					// apply element's tint to color
-									// Extract RGB channels
+					// Extract RGB channels
 					uint8_t r = (baseColor >> 16) & 0xFF;
 					uint8_t g = (baseColor >> 8) & 0xFF;
 					uint8_t b = baseColor & 0xFF;
