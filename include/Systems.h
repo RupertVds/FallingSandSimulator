@@ -114,12 +114,16 @@ void UpdateGridElements(Grid& grid)
                             ProcessGas(element, currentX, currentY, grid);
                         }
                     }
+
+                    if (blocked)
+                    {
+                        element->velocity = {};
+                        return false;
+                    }
+                    return true;
                 });
 
-            if (blocked)
-            {
-                element->velocity.x = 0;
-            }
+
         }
     }
 
@@ -171,14 +175,15 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
     // Step 2: Try diagonal downward movement
     bool moveRightFirst = (rand() % 2 == 0);
 
-    auto tryDiagonal = [&](int dx, int dy) -> bool {
-        int newX = x + dx, newY = y + dy;
-        if (grid.IsWithinBounds(newX, newY) && grid.IsEmpty(newX, newY))
+    auto tryDiagonal = [&](int dx, int dy) -> bool
         {
-            grid.MoveElement(x, y, newX, newY);
-            return true; // Successful diagonal movement
-        }
-        return false;
+            int newX = x + dx, newY = y + dy;
+            if (grid.IsWithinBounds(newX, newY) && grid.IsEmpty(newX, newY))
+            {
+                grid.MoveElement(x, y, newX, newY);
+                return true; // Successful diagonal movement
+            }
+            return false;
         };
 
     if (moveRightFirst)
@@ -193,30 +198,46 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
     }
 
     // Step 3: If downward movement fails, attempt horizontal dispersion
-    auto tryHorizontal = [&](int dy) -> bool {
-        int newY = y + dy;
-        if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
+    auto tryHorizontal = [&](int dy) -> bool
         {
-            grid.MoveElement(x, y, x, newY);
-            return true; // Successful horizontal movement
-        }
-        return false;
+            int newY = y + dy;
+            if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
+            {
+                grid.SwapElements(x, y, x, newY);
+                return true; // Successful horizontal movement
+            }
+            blocked = true;
+            return false;
         };
 
-    // Dispersion logic: Try spreading left and right up to the defined rate
+    //// Dispersion logic: Try spreading left and right up to the defined rate
     int maxDispersion = static_cast<int>(dispersionRate);
     for (int step = 1; step <= maxDispersion; ++step)
     {
         if (moveRightFirst)
         {
-            if (tryHorizontal(step)) return; // Spread right
-            if (tryHorizontal(-step)) return; // Spread left
+            if (tryHorizontal(step))
+            {
+                return; // Spread right
+            }
+            if (tryHorizontal(-step))
+            {
+                return;; // Spread left
+            }
         }
         else
         {
-            if (tryHorizontal(-step)) return; // Spread left
-            if (tryHorizontal(step)) return; // Spread right
+            if (tryHorizontal(-step))
+            {
+                return; // Spread left
+            }
+            if (tryHorizontal(step))
+            {
+                return; // Spread right
+            }
         }
+
+        if (blocked) break;
     }
 
     // Step 4: If no movement occurred, mark as blocked

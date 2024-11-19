@@ -25,7 +25,12 @@ void BresenhamLine(const glm::ivec2& start, const glm::ivec2& end, Func&& func)
 
     for (int i = 0; i < steps; ++i)
     {
-        func(x0, y0); // Invoke the function at the current position
+        // Invoke the function at the current position
+        // If func returns false, stop the traversal
+        if (!func(x0, y0))
+        {
+            break;
+        }
 
         int e2 = 2 * err;
         if (e2 > -dy) { // Step in x direction
@@ -38,6 +43,7 @@ void BresenhamLine(const glm::ivec2& start, const glm::ivec2& end, Func&& func)
         }
     }
 }
+
 
 
 

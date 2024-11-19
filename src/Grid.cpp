@@ -60,10 +60,10 @@ void Grid::UpdateInput()
 		{
 			m_PreviousGridMousePos = gridMousePos;
 		}
-
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.1f);
+				return true;
 			}
 		);
 	}
@@ -77,7 +77,8 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.5f);
+				return true;
 			}
 		);
 	}
@@ -92,6 +93,7 @@ void Grid::UpdateInput()
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
 				RemoveElementBrushed(x, y);
+				return true;
 			}
 		);
 	}
@@ -324,9 +326,12 @@ inline bool Grid::IsEvenFrame() const
 	return m_FrameCounter % 2 == 0;
 }
 
-void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName, bool override)
+void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName, bool override, float spawnChance)
 {
 	float radius = m_BrushSize - 0.5f; // Fractional brush size
+
+	// Clamp spawnChance between 0 and 1 for safety
+	spawnChance = std::clamp(spawnChance, 0.0f, 1.0f);
 
 	// Calculate the bounding box of the circle
 	int minX = static_cast<int>(std::floor(x - radius));
@@ -343,12 +348,20 @@ void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName, b
 			float distance = std::sqrt((i - x) * (i - x) + (j - y) * (j - y));
 			if (distance <= radius && IsWithinBounds(i, j) && (override ? true : IsEmpty(i, j)))
 			{
+				// Roll a random chance to skip adding an element
+				if (static_cast<float>(rand()) / RAND_MAX > spawnChance)
+				{
+					continue; // Skip this cell
+				}
+
+				// Handle element addition/removal
 				if (override) RemoveElementAt(i, j);
 				AddElementAt(i, j, elementTypeName);
 			}
 		}
 	}
 }
+
 
 void Grid::AddElementAt(int x, int y, const std::string& elementTypeName)
 {

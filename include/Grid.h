@@ -38,7 +38,7 @@ public:
 	void RenderElements(Window* window) const;
 	void RenderBrush(Window* window) const;
 
-	void AddElementBrushed(int x, int y, const std::string& elementTypeName, bool override);
+	void AddElementBrushed(int x, int y, const std::string& elementTypeName, bool override, float spawnChance = 1.0f);
 	void AddElementAt(int x, int y, const std::string& elementTypeName);
 	void RemoveElementBrushed(int x, int y);
 	void RemoveElementAt(int x, int y);
@@ -63,9 +63,12 @@ private:
 	std::unique_ptr<ElementRegistry> m_pElementRegistry{};
 
 	// Brush Settings
-	int m_BrushSize{1};
+	int m_BrushSize{ 4 };
 	glm::vec3 m_BrushColor{ 0.f, 100.f, 0.f };
 	bool m_BrushOverride{};
+	const float m_SpawnBrushTime{ 1 };
+	float m_SpawnBrushTimer{};
+
 
 	glm::ivec2 m_PreviousGridMousePos{};
 	std::string m_ElementToDraw{};
