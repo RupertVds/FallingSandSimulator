@@ -4,6 +4,15 @@
 #include "Utils.h"
 #include <algorithm>
 
+
+
+// TODO: MAKE SEPERATE PROCESS FUNCTION PER MAIN COMPONENT FOR EVERY MOVEMENT THAT NEEDS BRESENHAMS ALGORITHM
+// -> FOR DOWNWARDS CHECK WITH BRESENHAMS LINE
+// -> FOR DIAGONAL CHECKS WITH BRESENHAMS LINE
+// -> FOR 
+// nvm
+// WITH BRESENHAMS Line we check first downwards and store valid position, using that valid position we will continue check till we get blocked
+
 // these are all systems that are applied on the components of the elements
 template <typename ComponentType>
 bool HasComponent(const Element* element, const std::string& componentName)
@@ -91,39 +100,37 @@ void UpdateGridElements(Grid& grid)
             // Use Bresenham's line to check for available positions from start to target
             bool blocked = false;
             BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
+            {
+                // Cache the result of grid.IsEmpty() to avoid multiple calls to grid.IsEmpty()
+                bool isEmpty = grid.IsEmpty(currentX, currentY);
+                Element* currentElement = isEmpty ? nullptr : grid.GetElementData(currentX, currentY);
+
+                // If the cell is not empty, perform the movement checks
+                if (currentElement && !isEmpty)
                 {
-                    // Cache the result of grid.IsEmpty() to avoid multiple calls to grid.IsEmpty()
-                    bool isEmpty = grid.IsEmpty(currentX, currentY);
-                    Element* currentElement = isEmpty ? nullptr : grid.GetElementData(currentX, currentY);
-
-                    // If the cell is not empty, perform the movement checks
-                    if (currentElement && !isEmpty)
+                    // NOW DO OUR FINAL MAIN COMPONENTS
+                    if (isSolid)
                     {
-                        // NOW DO OUR FINAL MAIN COMPONENTS
-                        if (isSolid)
-                        {
-                            ProcessSolid(element, currentX, currentY, grid, blocked);
-                        }
-                        else if (isLiquid)
-                        {
-                            auto* liquidComp = GetComponent<LiquidComp>(element, "Liquid");
-                            ProcessLiquid(element, currentX, currentY, grid, blocked, liquidComp->dispersionRate);
-                        }
-                        else if (isGas)
-                        {
-                            ProcessGas(element, currentX, currentY, grid);
-                        }
+                        ProcessSolid(element, currentX, currentY, grid, blocked);
                     }
-
-                    if (blocked)
+                    else if (isLiquid)
                     {
-                        element->velocity = {};
-                        return false;
+                        auto* liquidComp = GetComponent<LiquidComp>(element, "Liquid");
+                        ProcessLiquid(element, currentX, currentY, grid, blocked, liquidComp->dispersionRate);
                     }
-                    return true;
-                });
+                    else if (isGas)
+                    {
+                        ProcessGas(element, currentX, currentY, grid);
+                    }
+                }
 
-
+                if (blocked)
+                {
+                    element->velocity = {};
+                    return false;
+                }
+                return true;
+            });
         }
     }
 
@@ -165,83 +172,79 @@ void ProcessGas(Element* element, int x, int y, Grid& grid)
 
 void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, float dispersionRate)
 {
-    // Step 1: Try moving down directly
+    // Check if the element below (downwards) is empty
     if (x < grid.GetRows() - 1 && grid.IsEmpty(x + 1, y))
     {
-        grid.MoveElement(x, y, x + 1, y);
-        return; // Successful downward movement
-    }
-
-    // Step 2: Try diagonal downward movement
-    bool moveRightFirst = (rand() % 2 == 0);
-
-    auto tryDiagonal = [&](int dx, int dy) -> bool
-        {
-            int newX = x + dx, newY = y + dy;
-            if (grid.IsWithinBounds(newX, newY) && grid.IsEmpty(newX, newY))
-            {
-                grid.MoveElement(x, y, newX, newY);
-                return true; // Successful diagonal movement
-            }
-            return false;
-        };
-
-    if (moveRightFirst)
-    {
-        if (tryDiagonal(1, 1)) return; // Down-right
-        if (tryDiagonal(1, -1)) return; // Down-left
+        grid.SwapElements(x, y, x + 1, y); // Move down
+        return; // Movement was successful
     }
     else
     {
-        if (tryDiagonal(1, -1)) return; // Down-left
-        if (tryDiagonal(1, 1)) return; // Down-right
-    }
+        // Randomize horizontal preference to simulate natural spread
+        bool moveRightFirst = (rand() % 2 == 0);
 
-    // Step 3: If downward movement fails, attempt horizontal dispersion
-    auto tryHorizontal = [&](int dy) -> bool
+        // Helper function to check diagonal movement
+        auto tryMoveDiagonal = [&](int dx, int dy) -> bool {
+            int targetX = x + 1; // Always check one row down
+            int targetY = y + dy;
+            if (grid.IsWithinBounds(targetX, targetY) && grid.IsEmpty(targetX, targetY))
+            {
+                // Check if the horizontal neighbor blocks diagonal movement
+                int neighborX = x;
+                int neighborY = y + dy;
+                if (grid.IsWithinBounds(neighborX, neighborY) && grid.IsEmpty(neighborX, neighborY))
+                {
+                    grid.SwapElements(x, y, targetX, targetY); // Move diagonally
+                    return true; // Movement was successful
+                }
+            }
+            return false; // Movement was blocked
+            };
+
+        // Attempt diagonal movement
+        if (moveRightFirst)
         {
+            if (tryMoveDiagonal(1, 1)) return; // Try down-right
+            if (tryMoveDiagonal(1, -1)) return; // Try down-left
+        }
+        else
+        {
+            if (tryMoveDiagonal(1, -1)) return; // Try down-left
+            if (tryMoveDiagonal(1, 1)) return; // Try down-right
+        }
+
+        // Attempt horizontal dispersion
+        auto tryHorizontal = [&](int dy) -> bool {
             int newY = y + dy;
             if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
             {
                 grid.SwapElements(x, y, x, newY);
-                return true; // Successful horizontal movement
+                return true; // Movement was successful
             }
-            blocked = true;
-            return false;
-        };
+            //blocked = true;
+            return false; // Movement was blocked
+            };
 
-    //// Dispersion logic: Try spreading left and right up to the defined rate
-    int maxDispersion = static_cast<int>(dispersionRate);
-    for (int step = 1; step <= maxDispersion; ++step)
-    {
-        if (moveRightFirst)
+        int maxDispersion = static_cast<int>(dispersionRate);
+        for (int step = 1; step <= maxDispersion; ++step)
         {
-            if (tryHorizontal(step))
+            if (moveRightFirst)
             {
-                return; // Spread right
+                if (tryHorizontal(step)) return; // Spread right
+                if (tryHorizontal(-step)) return; // Spread left
             }
-            if (tryHorizontal(-step))
+            else
             {
-                return;; // Spread left
+                if (tryHorizontal(-step)) return; // Spread left
+                if (tryHorizontal(step)) return; // Spread right
             }
-        }
-        else
-        {
-            if (tryHorizontal(-step))
-            {
-                return; // Spread left
-            }
-            if (tryHorizontal(step))
-            {
-                return; // Spread right
-            }
+
+            //if (blocked) break;
         }
 
-        if (blocked) break;
+        // If no movement occurred, mark as blocked
+        blocked = true;
     }
-
-    // Step 4: If no movement occurred, mark as blocked
-    blocked = true;
 }
 
 void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked)
@@ -250,41 +253,47 @@ void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked)
     if (x < grid.GetRows() - 1 && (grid.IsEmpty(x + 1, y) || HasComponent<LiquidComp>(grid.GetElementData(x + 1, y), "Liquid")))
     {
         grid.SwapElements(x, y, x + 1, y); // Move down
+        return; // Movement was successful
     }
     else
     {
         // Randomize horizontal preference to simulate natural spread
         bool moveRightFirst = (rand() % 2 == 0);
 
-        // Check movement directions: down-left, down-right
-        auto tryMove = [&](int dx, int dy) {
-            if (x < grid.GetRows() - 1 && y + dy >= 0 && y + dy < grid.GetColumns())
+        // Helper function to check diagonal movement
+        auto tryMoveDiagonal = [&](int dx, int dy) -> bool {
+            int targetX = x + 1; // Always check one row down
+            int targetY = y + dy;
+            if (grid.IsWithinBounds(targetX, targetY) && grid.IsEmpty(targetX, targetY))
             {
-                if (grid.IsEmpty(x + 1, y + dy) || HasComponent<LiquidComp>(grid.GetElementData(x + 1, y + dy), "Liquid"))
+                // Check if the horizontal neighbor blocks diagonal movement
+                int neighborX = x;
+                int neighborY = y + dy;
+                if (grid.IsWithinBounds(neighborX, neighborY) && grid.IsEmpty(neighborX, neighborY))
                 {
-                    grid.SwapElements(x, y, x + 1, y + dy); // Move diagonally
-                    return true;
+                    grid.SwapElements(x, y, targetX, targetY); // Move diagonally
+                    return true; // Movement was successful
                 }
             }
-            return false;
+            return false; // Movement was blocked
             };
 
-        // Try down-left, then down-right based on the random flag
+        // Attempt diagonal movement
         if (moveRightFirst)
         {
-            if (!tryMove(-1, -1)) // down-left
-                blocked = true; // No movement
-            else if (!tryMove(1, 1)) // down-right
-                blocked = true;
+            if (tryMoveDiagonal(1, 1)) return; // Try down-right
+            if (tryMoveDiagonal(1, -1)) return; // Try down-left
         }
         else
         {
-            if (!tryMove(1, 1)) // down-right
-                blocked = true; // No movement
-            else if (!tryMove(-1, -1)) // down-left
-                blocked = true;
+            if (tryMoveDiagonal(1, -1)) return; // Try down-left
+            if (tryMoveDiagonal(1, 1)) return; // Try down-right
         }
+
+        // If no diagonal movement is possible, mark as blocked
+        blocked = true;
     }
 }
+
 
 #endif // !SYSTEMS_H
