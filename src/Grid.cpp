@@ -77,7 +77,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.5f);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 1.f);
 				return true;
 			}
 		);
@@ -305,10 +305,20 @@ inline ElementID Grid::GetElementID(int x, int y) const
 	return m_Elements[x][y];
 }
 
+ElementID Grid::GetElementID(const glm::ivec2& pos) const
+{
+	return GetElementID(pos.x, pos.y);
+}
+
 inline Element* Grid::GetElementData(int x, int y) const
 {
 	ElementID id = GetElementID(x, y);
 	return id != EMPTY_CELL ? m_pElementRegistry->GetElementData(id) : nullptr;
+}
+
+Element* Grid::GetElementData(const glm::ivec2& pos) const
+{
+	return GetElementData(pos.x, pos.y);
 }
 
 inline bool Grid::IsWithinBounds(int x, int y) const
@@ -316,9 +326,19 @@ inline bool Grid::IsWithinBounds(int x, int y) const
 	return x >= 0 && x < m_GridInfo.rows && y >= 0 && y < m_GridInfo.columns;
 }
 
+inline bool Grid::IsWithinBounds(const glm::ivec2& pos) const
+{
+	return IsWithinBounds(pos.x , pos.y);
+}
+
 inline bool Grid::IsEmpty(int x, int y) const
 {
 	return GetElementID(x, y) == EMPTY_CELL;
+}
+
+inline bool Grid::IsEmpty(const glm::ivec2& pos) const
+{
+	return IsEmpty(pos.x, pos.y);
 }
 
 inline bool Grid::IsEvenFrame() const

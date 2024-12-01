@@ -62,7 +62,7 @@ void Game::Run()
         if (fpsAccumulator >= FPS_UPDATE_INTERVAL)
         {
             float averageFPS = frameCount / fpsAccumulator;
-            std::cout << "Average FPS: " << averageFPS << std::endl;
+            //std::cout << "Average FPS: " << averageFPS << std::endl;
 
             // Reset accumulator and frame count
             fpsAccumulator = 0.0f;

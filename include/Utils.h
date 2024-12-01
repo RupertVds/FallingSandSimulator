@@ -33,11 +33,13 @@ void BresenhamLine(const glm::ivec2& start, const glm::ivec2& end, Func&& func)
         }
 
         int e2 = 2 * err;
-        if (e2 > -dy) { // Step in x direction
+        if (e2 > -dy)
+        { // Step in x direction
             err -= dy;
             x0 += sx;
         }
-        if (e2 < dx) { // Step in y direction
+        if (e2 < dx) 
+        { // Step in y direction
             err += dx;
             y0 += sy;
         }

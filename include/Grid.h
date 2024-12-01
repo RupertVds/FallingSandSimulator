@@ -48,9 +48,13 @@ public:
 	int GetColumns() const { return m_GridInfo.columns; };
 
 	inline ElementID GetElementID(int x, int y) const;
+	inline ElementID GetElementID(const glm::ivec2& pos) const;
 	inline Element* GetElementData(int x, int y) const;
+	inline Element* GetElementData(const glm::ivec2& pos) const;
 	inline bool IsWithinBounds(int x, int y) const;
+	inline bool IsWithinBounds(const glm::ivec2& pos) const;
 	inline bool IsEmpty(int x, int y) const;
+	inline bool IsEmpty(const glm::ivec2& pos) const;
 	inline bool IsEvenFrame() const;
 
 	void MoveElement(int x, int y, int newX, int newY);

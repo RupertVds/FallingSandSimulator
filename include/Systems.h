@@ -4,14 +4,14 @@
 #include "Utils.h"
 #include <algorithm>
 
-
-
-// TODO: MAKE SEPERATE PROCESS FUNCTION PER MAIN COMPONENT FOR EVERY MOVEMENT THAT NEEDS BRESENHAMS ALGORITHM
-// -> FOR DOWNWARDS CHECK WITH BRESENHAMS LINE
-// -> FOR DIAGONAL CHECKS WITH BRESENHAMS LINE
-// -> FOR 
-// nvm
-// WITH BRESENHAMS Line we check first downwards and store valid position, using that valid position we will continue check till we get blocked
+#define SOUTH glm::ivec2{1, 0}
+#define SOUTH_WEST glm::ivec2{1, -1}
+#define SOUTH_EAST glm::ivec2{1, 1}
+#define NORTH glm::ivec2{-1, 0}
+#define NORTH_WEST glm::ivec2{-1, -1}
+#define NORTH_EAST glm::ivec2{-1, 1}
+#define WEST glm::ivec2{0, -1}
+#define EAST glm::ivec2{0, 1}
 
 // these are all systems that are applied on the components of the elements
 template <typename ComponentType>
@@ -31,11 +31,13 @@ const ComponentType* GetComponent(const Element* element, const std::string& com
     return nullptr; // Return nullptr if the component doesn't exist
 }
 
-void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked);
+void ProcessSolid(Element* element, int x, int y, Grid& grid);
 
-void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, float dispersionRate);
+void ProcessLiquid(Element* element, int x, int y, Grid& grid, float dispersionRate);
 
 void ProcessGas(Element* element, int x, int y, Grid& grid);
+
+bool CanSolidReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
 
 void UpdateGridElements(Grid& grid)
 {
@@ -83,7 +85,7 @@ void UpdateGridElements(Grid& grid)
             targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
 
 
-            // Cache if the element is Solid, Liquid or Gas to reduce checking it in the bresenhams algorithm
+            // Cache if the element is Solid, Liquid or Gas to reduce checking it in the Bresenham's algorithm
             bool isSolid = HasComponent<SolidComp>(element, "Solid");
             bool isLiquid = false;
             bool isGas = false;
@@ -99,38 +101,60 @@ void UpdateGridElements(Grid& grid)
 
             // Use Bresenham's line to check for available positions from start to target
             bool blocked = false;
-            BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
+			glm::ivec2 lastValidPos{ startPos };
+
+            // only do bresenham if velocity is greater or equal  to/than 2
+            if (element->velocity.x > 2 || element->velocity.y > 2)
             {
-                // Cache the result of grid.IsEmpty() to avoid multiple calls to grid.IsEmpty()
-                bool isEmpty = grid.IsEmpty(currentX, currentY);
-                Element* currentElement = isEmpty ? nullptr : grid.GetElementData(currentX, currentY);
+				BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
+					{
+						glm::ivec2 currentPos{ currentX, currentY };
+						glm::ivec2 direction = currentPos - lastValidPos;
 
-                // If the cell is not empty, perform the movement checks
-                if (currentElement && !isEmpty)
-                {
-                    // NOW DO OUR FINAL MAIN COMPONENTS
-                    if (isSolid)
-                    {
-                        ProcessSolid(element, currentX, currentY, grid, blocked);
-                    }
-                    else if (isLiquid)
-                    {
-                        auto* liquidComp = GetComponent<LiquidComp>(element, "Liquid");
-                        ProcessLiquid(element, currentX, currentY, grid, blocked, liquidComp->dispersionRate);
-                    }
-                    else if (isGas)
-                    {
-                        ProcessGas(element, currentX, currentY, grid);
-                    }
-                }
+						if (!grid.IsWithinBounds(currentX, currentY))
+						{
+							blocked = true;
+							return false; // Stop traversal if out of bounds
+						}
 
-                if (blocked)
-                {
-                    element->velocity = {};
-                    return false;
-                }
-                return true;
-            });
+						// Evaluate if this step can be reached from the last valid position
+						if (CanSolidReachTarget(lastValidPos, currentPos, grid))
+						{
+							// If reachable, update lastValidPos to current position
+							lastValidPos = currentPos;
+							return true; // Continue traversal
+						}
+
+						// If the step is not reachable, mark blocked and stop traversal
+						blocked = true;
+						return false;
+					});
+
+				if (blocked)
+				{
+					element->velocity = {};
+				}
+
+				// now place element at last valid pos
+				grid.SwapElements(x, y, lastValidPos.x, lastValidPos.y);
+            }
+
+            // now velocity has placed element at correct position
+            // now we process the interaction with other elements
+            // NOW DO OUR FINAL MAIN COMPONENTS
+			if (isSolid)
+			{
+				ProcessSolid(element, lastValidPos.x, lastValidPos.y, grid);
+			}
+			else if (isLiquid)
+			{
+				auto* liquidComp = GetComponent<LiquidComp>(element, "Liquid");
+				ProcessLiquid(element, lastValidPos.x, lastValidPos.y, grid, liquidComp->dispersionRate);
+			}
+			else if (isGas)
+			{
+				ProcessGas(element, lastValidPos.x, lastValidPos.y, grid);
+			}
         }
     }
 
@@ -140,12 +164,58 @@ void UpdateGridElements(Grid& grid)
         for (int y = 0; y < grid.GetColumns(); ++y)
         {
             Element* element = grid.GetElementData(x, y);
-            if (element) {
+            if (element)
+            {
                 element->hasMoved = false;
             }
         }
     }
 }
+
+bool CanSolidReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid)
+{
+	glm::ivec2 direction = target - start;
+
+	if (!grid.IsWithinBounds(target)) 
+    {
+		return false; // Target is outside the grid bounds
+	}
+
+	// If the direction is valid, determine if the target position is reachable
+	if (direction == SOUTH) {
+		return grid.IsEmpty(target); // Can move south if the target cell is empty
+	}
+	else if (direction == NORTH) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == EAST) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == WEST) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == NORTH_EAST) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == NORTH_WEST) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == SOUTH_EAST) {
+		return grid.IsEmpty(target);
+	}
+	else if (direction == SOUTH_WEST) {
+		return grid.IsEmpty(target);
+	}
+
+	// If the direction is zero (start == target), disallow it
+	if (direction == glm::ivec2{ 0, 0 }) {
+		//std::cout << "Target is current position (unexpected).\n";
+		return true;
+	}
+
+	return false; // Default to unreachable if no valid direction is matched
+}
+
 
 void ProcessGas(Element* element, int x, int y, Grid& grid)
 {
@@ -170,7 +240,7 @@ void ProcessGas(Element* element, int x, int y, Grid& grid)
     }
 }
 
-void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, float dispersionRate)
+void ProcessLiquid(Element* element, int x, int y, Grid& grid, float dispersionRate)
 {
     // Check if the element below (downwards) is empty
     if (x < grid.GetRows() - 1 && grid.IsEmpty(x + 1, y))
@@ -184,7 +254,8 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
         bool moveRightFirst = (rand() % 2 == 0);
 
         // Helper function to check diagonal movement
-        auto tryMoveDiagonal = [&](int dx, int dy) -> bool {
+        auto tryMoveDiagonal = [&](int dx, int dy) -> bool 
+            {
             int targetX = x + 1; // Always check one row down
             int targetY = y + dy;
             if (grid.IsWithinBounds(targetX, targetY) && grid.IsEmpty(targetX, targetY))
@@ -198,7 +269,7 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
                     return true; // Movement was successful
                 }
             }
-            return false; // Movement was blocked
+            return false;
             };
 
         // Attempt diagonal movement
@@ -214,14 +285,14 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
         }
 
         // Attempt horizontal dispersion
-        auto tryHorizontal = [&](int dy) -> bool {
+        auto tryHorizontal = [&](int dy) -> bool
+            {
             int newY = y + dy;
             if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
             {
                 grid.SwapElements(x, y, x, newY);
                 return true; // Movement was successful
             }
-            //blocked = true;
             return false; // Movement was blocked
             };
 
@@ -238,16 +309,11 @@ void ProcessLiquid(Element* element, int x, int y, Grid& grid, bool& blocked, fl
                 if (tryHorizontal(-step)) return; // Spread left
                 if (tryHorizontal(step)) return; // Spread right
             }
-
-            //if (blocked) break;
         }
-
-        // If no movement occurred, mark as blocked
-        blocked = true;
     }
 }
 
-void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked)
+void ProcessSolid(Element* element, int x, int y, Grid& grid)
 {
     // Check if the element below (downwards) is empty or has a liquid component
     if (x < grid.GetRows() - 1 && (grid.IsEmpty(x + 1, y) || HasComponent<LiquidComp>(grid.GetElementData(x + 1, y), "Liquid")))
@@ -261,15 +327,16 @@ void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked)
         bool moveRightFirst = (rand() % 2 == 0);
 
         // Helper function to check diagonal movement
-        auto tryMoveDiagonal = [&](int dx, int dy) -> bool {
+        auto tryMoveDiagonal = [&](int dx, int dy) -> bool 
+            {
             int targetX = x + 1; // Always check one row down
             int targetY = y + dy;
-            if (grid.IsWithinBounds(targetX, targetY) && grid.IsEmpty(targetX, targetY))
+            if (grid.IsWithinBounds(targetX, targetY) && (grid.IsEmpty(targetX, targetY) || HasComponent<LiquidComp>(grid.GetElementData(targetX, targetY), "Liquid")))
             {
                 // Check if the horizontal neighbor blocks diagonal movement
                 int neighborX = x;
                 int neighborY = y + dy;
-                if (grid.IsWithinBounds(neighborX, neighborY) && grid.IsEmpty(neighborX, neighborY))
+                if (grid.IsWithinBounds(neighborX, neighborY) && (grid.IsEmpty(neighborX, neighborY) || HasComponent<LiquidComp>(grid.GetElementData(neighborX, neighborY), "Liquid")))
                 {
                     grid.SwapElements(x, y, targetX, targetY); // Move diagonally
                     return true; // Movement was successful
@@ -289,9 +356,6 @@ void ProcessSolid(Element* element, int x, int y, Grid& grid, bool& blocked)
             if (tryMoveDiagonal(1, -1)) return; // Try down-left
             if (tryMoveDiagonal(1, 1)) return; // Try down-right
         }
-
-        // If no diagonal movement is possible, mark as blocked
-        blocked = true;
     }
 }
 
