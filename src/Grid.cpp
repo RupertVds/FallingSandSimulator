@@ -62,7 +62,7 @@ void Grid::UpdateInput()
 		}
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.1f);
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.01f);
 				return true;
 			}
 		);

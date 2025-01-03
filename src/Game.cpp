@@ -17,7 +17,7 @@ Game::Game()
     }
 
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
-    int cellSize{ 16 };
+    int cellSize{ 8 };
     ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, m_pWindow->GetHeight() / cellSize, m_pWindow->GetWidth() / cellSize, cellSize }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 500, 500, 2 }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 40, 70, 16 }, m_pWindow));
@@ -62,23 +62,23 @@ void Game::Run()
         if (fpsAccumulator >= FPS_UPDATE_INTERVAL)
         {
             float averageFPS = frameCount / fpsAccumulator;
-            //std::cout << "Average FPS: " << averageFPS << std::endl;
+            std::cout << "Average FPS: " << averageFPS << std::endl;
 
             // Reset accumulator and frame count
             fpsAccumulator = 0.0f;
             frameCount = 0;
         }
 
-        ProcessInput();                // Process user inputs and events
+        ProcessInput();
 
         while (lag >= SIMULATION_TIME_STEP)
         {
-            FixedUpdate();   // Update simulation with fixed time step
+            FixedUpdate();  
             lag -= SIMULATION_TIME_STEP;
         }
 
-        Update();                      // General updates based on delta time
-        Render();                      // Render everything
+        Update();
+        Render();
 
         // FPS Capping Logic
         if (CAP_FPS && !USE_VSYNC)
