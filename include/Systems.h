@@ -85,7 +85,7 @@ void UpdateGridElements(Grid& grid)
             {
                 isLiquid = HasComponent<LiquidComp>(element, "Liquid");
             }
-            else if (!isLiquid)
+            if (!isLiquid)
             {
                 isGas = HasComponent<GasComp>(element, "Gas");
             }
@@ -102,11 +102,10 @@ void UpdateGridElements(Grid& grid)
             targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
 
             // Use Bresenham's line to check for available positions from start to target
-            bool blocked = false;
 			glm::ivec2 lastValidPos{ startPos };
 
             // only do bresenham if velocity is greater or equal  to/than 2
-            if (element->velocity.x > 2 || element->velocity.y > 2)
+            if (abs(element->velocity.x) >= 2 || abs(element->velocity.y) >= 2)
             {
 				BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
 					{
@@ -115,7 +114,6 @@ void UpdateGridElements(Grid& grid)
 
 						if (!grid.IsWithinBounds(currentX, currentY))
 						{
-							blocked = true;
 							return false; // Stop traversal if out of bounds
 						}
 
@@ -145,27 +143,16 @@ void UpdateGridElements(Grid& grid)
                             }
                         }
 
-						// If the step is not reachable, mark blocked and stop traversal
-                        
-                        if (grid.IsWithinBounds(lastValidPos))
-                        {
-                            Element* targetElement = grid.GetElementData(lastValidPos);
-                            if (targetElement && !(targetElement->velocity.x > 2 || targetElement->velocity.y > 2))
-                            {
-                                blocked = true;
-                            }
-                        }
-
 						return false;
 					});
 
-				if (blocked)
-				{
-					element->velocity = {};
-				}
-
 				// now place element at last valid pos
 				grid.SwapElements(x, y, lastValidPos.x, lastValidPos.y);
+
+                if (x == lastValidPos.x && y == lastValidPos.y)
+                {
+                    element->velocity = {};
+                }
             }
             
             // now velocity has placed element at correct position
@@ -173,15 +160,18 @@ void UpdateGridElements(Grid& grid)
 			if (isSolid)
 			{
 				ProcessSolid(element, lastValidPos.x, lastValidPos.y, grid);
+                element->hasMoved = true;
 			}
 			else if (isLiquid)
 			{
 				auto* liquidComp = TryGetComponent<LiquidComp>(element, "Liquid");
 				ProcessLiquid(element, lastValidPos.x, lastValidPos.y, grid, liquidComp->dispersionRate);
+                element->hasMoved = true;
 			}
 			else if (isGas)
 			{
 				ProcessGas(element, lastValidPos.x, lastValidPos.y, grid);
+                element->hasMoved = true;
 			}
 
             // now we process the interaction with other elements
@@ -400,26 +390,75 @@ bool CanGasReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid)
 	return false; // Default to unreachable if no valid direction is matched
 }
 
-
 void ProcessGas(Element* element, int x, int y, Grid& grid)
 {
-    // Process Gas behavior
-    if (HasComponent<GasComp>(element, "Gas"))
+    // Check if the element below (downwards) is empty
+    if (x > 0 && (grid.IsEmpty(x - 1, y) || HasComponent<LiquidComp>(grid.GetElementData(x - 1, y), "Liquid")))
     {
-        const auto* comp = TryGetComponent<GasComp>(element, "Gas");
-        int upX = x - 1;
+        grid.SwapElements(x, y, x - 1, y); // Move down
+        return; // Movement was successful
+    }
+    else
+    {
+        // Randomize horizontal preference to simulate natural spread
+        bool moveRightFirst = (rand() % 2 == 0);
 
-        if (grid.IsWithinBounds(upX, y) && grid.IsEmpty(upX, y)) {
-            grid.SwapElements(x, y, upX, y);
-            element->hasMoved = true;
+        // Helper function to check diagonal movement
+        auto tryMoveDiagonal = [&](int dx, int dy) -> bool
+            {
+                int targetX = x - 1; // Always check one row down
+                int targetY = y + dy;
+                if (grid.IsWithinBounds(targetX, targetY) && grid.IsEmpty(targetX, targetY))
+                {
+                    // Check if the horizontal neighbor blocks diagonal movement
+                    int neighborX = x;
+                    int neighborY = y + dy;
+                    if (grid.IsWithinBounds(neighborX, neighborY) && grid.IsEmpty(neighborX, neighborY))
+                    {
+                        grid.SwapElements(x, y, targetX, targetY); // Move diagonally
+                        return true; // Movement was successful
+                    }
+                }
+                return false;
+            };
+
+        // Attempt diagonal movement
+        if (moveRightFirst)
+        {
+            if (tryMoveDiagonal(1, 1)); // Try down-right
+            if (tryMoveDiagonal(1, -1)); // Try down-left
         }
-        else if (grid.IsWithinBounds(upX, y - 1) && grid.IsEmpty(upX, y - 1)) { // Up-left
-            grid.SwapElements(x, y, upX, y - 1);
-            element->hasMoved = true;
+        else
+        {
+            if (tryMoveDiagonal(1, -1)); // Try down-left
+            if (tryMoveDiagonal(1, 1)); // Try down-right
         }
-        else if (grid.IsWithinBounds(upX, y + 1) && grid.IsEmpty(upX, y + 1)) { // Up-right
-            grid.SwapElements(x, y, upX, y + 1);
-            element->hasMoved = true;
+
+        // Attempt horizontal dispersion
+        auto tryHorizontal = [&](int dy) -> bool
+            {
+                int newY = y + dy;
+                if (grid.IsWithinBounds(x, newY) && grid.IsEmpty(x, newY))
+                {
+                    grid.SwapElements(x, y, x, newY);
+                    return false; // Movement was successful
+                }
+                return true; // Movement was blocked
+            };
+
+        int maxDispersion = 5;
+        for (int step = 1; step <= maxDispersion; step++)
+        {
+            if (moveRightFirst)
+            {
+                if (tryHorizontal(step)) return; // Spread right
+                if (tryHorizontal(-step)) return; // Spread left
+            }
+            else
+            {
+                if (tryHorizontal(-step)) return; // Spread left
+                if (tryHorizontal(step)) return; // Spread right
+            }
         }
     }
 }

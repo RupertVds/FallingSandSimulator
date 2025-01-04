@@ -159,7 +159,7 @@ void Grid::UpdateElements()
 void Grid::Render(Window* window) const
 {
 	RenderElements(window);
-	//RenderGrid(window);
+	RenderGrid(window);
 	RenderBrush(window);
 }
 
@@ -204,19 +204,14 @@ void Grid::RenderBrush(Window* window) const
 
 void Grid::RenderGrid(Window* window) const
 {
-	SDL_SetRenderDrawColor(window->GetRenderer(), 100, 0, 0, 255); // Red color for grid lines
-
-	// Draw vertical grid lines
-	for (int x = 0; x <= this->GetColumns(); ++x)
-	{
-		SDL_RenderDrawLine(window->GetRenderer(), m_GridInfo.pos.x + x * m_GridInfo.cellSize, m_GridInfo.pos.y, m_GridInfo.pos.x + x * m_GridInfo.cellSize, m_GridInfo.pos.y + m_GridInfo.rows * m_GridInfo.cellSize); // Vertical line
-	}
-
-	// Draw horizontal grid lines
-	for (int y = 0; y <= this->GetRows(); ++y)
-	{
-		SDL_RenderDrawLine(window->GetRenderer(), m_GridInfo.pos.x, m_GridInfo.pos.y + y * m_GridInfo.cellSize, m_GridInfo.pos.x + m_GridInfo.columns * m_GridInfo.cellSize, m_GridInfo.pos.y + y * m_GridInfo.cellSize); // Horizontal line
-	}
+	SDL_SetRenderDrawColor(window->GetRenderer(), 255, 0, 0, 255); // Bright red for bounds
+	SDL_Rect gridBounds = {
+		m_GridInfo.pos.x,
+		m_GridInfo.pos.y,
+		m_GridInfo.columns * m_GridInfo.cellSize,
+		m_GridInfo.rows * m_GridInfo.cellSize
+	};
+	SDL_RenderDrawRect(window->GetRenderer(), &gridBounds);
 }
 
 void Grid::RenderElements(Window* window) const
