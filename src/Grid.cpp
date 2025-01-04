@@ -54,15 +54,45 @@ void Grid::UpdateInput()
 		m_ElementToDraw = element->definition->name;
 	}
 	// CLICK TO PLACE IT
+	else if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_LSHIFT) && InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
+	{
+		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
+		{
+			m_PreviousGridMousePos = gridMousePos;
+		}
+
+		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
+			{
+				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 1.f);
+				return true;
+			}
+		);
+	}
 	else if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
 	{
 		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
 		{
 			m_PreviousGridMousePos = gridMousePos;
 		}
+
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
 				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.01f);
+				return true;
+			}
+		);
+	}
+
+	if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_RIGHT))
+	{
+		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
+		{
+			m_PreviousGridMousePos = gridMousePos;
+		}
+
+		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
+			{
+				RemoveElementBrushed(x, y);
 				return true;
 			}
 		);
@@ -83,21 +113,6 @@ void Grid::UpdateInput()
 		);
 	}
 
-	if (InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_RIGHT))
-	{
-		if (m_PreviousGridMousePos == glm::ivec2{ -1, -1 })
-		{
-			m_PreviousGridMousePos = gridMousePos;
-		}
-		//RemoveElementAt(gridMousePos.x, gridMousePos.y);
-		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
-			{
-				RemoveElementBrushed(x, y);
-				return true;
-			}
-		);
-	}
-
 	if (InputManager::GetInstance().IsScrolledUp())
 	{
 		++m_BrushSize;
@@ -110,15 +125,15 @@ void Grid::UpdateInput()
 		}
 	}
 	
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_0))
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_1))
 	{
 		m_ElementToDraw = "Wall";
 	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_1))
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_2))
 	{
 		m_ElementToDraw = "Sand";
 	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_2))
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_3))
 	{
 		m_ElementToDraw = "Water";
 	}
@@ -126,7 +141,6 @@ void Grid::UpdateInput()
 	{
 		m_ElementToDraw = "Smoke";
 	}
-
 
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
 	{

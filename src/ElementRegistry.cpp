@@ -26,7 +26,7 @@ ElementRegistry::ElementRegistry()
     };
     m_ElementTypes["Smoke"] = smoke;
 
-    ElementDefinition wall{ "Wall", 0x808080,
+    ElementDefinition wall{ "Wall", 0x2b2a2a,
     {
     }
     };
