@@ -75,7 +75,7 @@ private:
 
 
 	glm::ivec2 m_PreviousGridMousePos{};
-	std::string m_ElementToDraw{};
+	mutable std::string m_SelectedElement{};
 	bool m_MouseIsInGrid{};
 
 	uint8_t m_FrameCounter{};

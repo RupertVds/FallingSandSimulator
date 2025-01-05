@@ -12,7 +12,7 @@
 Game::Game()
     : m_pWindow(nullptr), m_IsRunning(true)
 {
-    m_pWindow = new Window("RVDS - Falling Sand Simulator", 1280, 720);
+    m_pWindow = new Window("RVDS - Falling Sand Simulator", 1700, 720);
     //m_pWindow = new Window("RVDS - Falling Sand Simulator", 1920, 1080);
     if (!m_pWindow->Init())
     {
@@ -61,7 +61,7 @@ void Game::Run()
     float lag = 0.0f;
     float fpsAccumulator = 0.0f;
     int frameCount = 0;
-    constexpr float FPS_UPDATE_INTERVAL = 1.0f;  // Update and print FPS every second
+    constexpr float FPS_UPDATE_INTERVAL = 0.5f;
 
     SDL_GL_SetSwapInterval(USE_VSYNC ? 1 : 0);
 
@@ -82,8 +82,10 @@ void Game::Run()
         // Print FPS every second
         if (fpsAccumulator >= FPS_UPDATE_INTERVAL)
         {
-            float averageFPS = frameCount / fpsAccumulator;
-            std::cout << "Average FPS: " << averageFPS << std::endl;
+            int averageFPS = frameCount / fpsAccumulator;
+            //std::cout << "Average FPS: " << averageFPS << std::endl;
+            std::string title = "FPS: " + std::to_string(averageFPS);
+            SDL_SetWindowTitle(m_pWindow->GetSDLWindow(), title.c_str());
 
             // Reset accumulator and frame count
             fpsAccumulator = 0.0f;
@@ -115,7 +117,6 @@ void Game::Run()
         }
     }
 }
-
 
 void Game::ProcessInput()
 {
@@ -165,14 +166,18 @@ void Game::Render() const
 {
     m_pWindow->Clear();  // Clear window to a specific color
 
-    ServiceLocator::GetSandSimulator().Render();
-
     // Start a new ImGui frame
     ImGui_ImplSDLRenderer_NewFrame();
     ImGui_ImplSDL2_NewFrame(m_pWindow->GetSDLWindow());
-    ImGui::NewFrame();
+    //ImGui::NewFrame();
+    //ImGui::Begin("Example Window");
+    //ImGui::Text("Hello, Dear Imgui");
+    //ImGui::End();
 
-    ImGui::ShowDemoWindow(); // Show demo window! :)
+    ServiceLocator::GetSandSimulator().Render();
+
+    //ImGui::ShowDemoWindow(); // Show demo window! :)
+
 
     // End the ImGui frame and render
     ImGui::Render();

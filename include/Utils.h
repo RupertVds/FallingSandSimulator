@@ -4,6 +4,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <functional>
+#include <imgui.h>
 
 // Invoke a function at every cell position along the line
 template <typename Func>
@@ -46,7 +47,13 @@ void BresenhamLine(const glm::ivec2& start, const glm::ivec2& end, Func&& func)
     }
 }
 
-
+ImVec4 HexToImVec4(uint32_t hexColor) 
+{
+    float r = ((hexColor >> 16) & 0xFF) / 255.0f;
+    float g = ((hexColor >> 8) & 0xFF) / 255.0f;
+    float b = (hexColor & 0xFF) / 255.0f;
+    return ImVec4(r, g, b, 1.0f); // Assuming full opacity
+}
 
 
 #endif // UTILS_H

@@ -6,6 +6,8 @@
 #include <Systems.h>
 #include "Utils.h"
 #include <algorithm>
+#include <imgui.h>
+#include <unordered_map>
 
 Grid::Grid(const GridInfo& gridInfo)
 	: m_GridInfo(gridInfo), m_pElementRegistry(std::make_unique<ElementRegistry>())
@@ -19,7 +21,7 @@ Grid::~Grid()
 
 void Grid::Init()
 {
-	m_ElementToDraw = "Sand";
+	m_SelectedElement = "Sand";
 	m_PreviousGridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
 
 	//for (int x = 0; x < this->GetRows(); ++x)
@@ -51,7 +53,7 @@ void Grid::UpdateInput()
 	if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_LALT) && InputManager::GetInstance().IsMouseButtonPressed(SDL_BUTTON_LEFT))
 	{
 		const Element* element = GetElementData(gridMousePos.x, gridMousePos.y);
-		m_ElementToDraw = element->definition->name;
+		m_SelectedElement = element->definition->name;
 	}
 	// CLICK TO PLACE IT
 	else if (InputManager::GetInstance().IsKeyHeld(SDL_SCANCODE_LSHIFT) && InputManager::GetInstance().IsMouseButtonHeld(SDL_BUTTON_LEFT))
@@ -63,7 +65,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 1.f);
+				AddElementBrushed(x, y, m_SelectedElement, m_BrushOverride, 1.f);
 				return true;
 			}
 		);
@@ -77,7 +79,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 0.01f);
+				AddElementBrushed(x, y, m_SelectedElement, m_BrushOverride, 0.01f);
 				return true;
 			}
 		);
@@ -107,7 +109,7 @@ void Grid::UpdateInput()
 
 		BresenhamLine(m_PreviousGridMousePos, gridMousePos, [&](int x, int y)
 			{
-				AddElementBrushed(x, y, m_ElementToDraw, m_BrushOverride, 1.f);
+				AddElementBrushed(x, y, m_SelectedElement, m_BrushOverride, 1.f);
 				return true;
 			}
 		);
@@ -127,27 +129,27 @@ void Grid::UpdateInput()
 	
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_1))
 	{
-		m_ElementToDraw = "Wall";
+		m_SelectedElement = "Wall";
 	}
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_2))
 	{
-		m_ElementToDraw = "Sand";
+		m_SelectedElement = "Sand";
 	}
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_3))
 	{
-		m_ElementToDraw = "Water";
+		m_SelectedElement = "Water";
 	}
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_4))
 	{
-		m_ElementToDraw = "Smoke";
+		m_SelectedElement = "Smoke";
 	}
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_5))
 	{
-		m_ElementToDraw = "Wood";
+		m_SelectedElement = "Wood";
 	}
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_6))
 	{
-		m_ElementToDraw = "Fire";
+		m_SelectedElement = "Fire";
 	}
 
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
@@ -183,6 +185,119 @@ void Grid::Render(Window* window) const
 	RenderElements(window);
 	RenderGrid(window);
 	RenderBrush(window);
+
+	ImGui::NewFrame();
+	ImGui::Begin("Element Selector");
+
+	if (ImGui::BeginListBox("##Elements", ImVec2(300, 200)))
+	{ // Adjust size as needed
+		const auto& elementTypes = m_pElementRegistry->GetElementTypes();
+
+		for (const auto& [name, definition] : elementTypes)
+		{
+			ImGui::PushID(name.c_str());
+
+			// Convert hex color to ImVec4
+			ImVec4 color = HexToImVec4(definition.color);
+			ImGui::ColorButton("Color", color, 0, ImVec2(20, 20));
+			ImGui::SameLine();
+			if (ImGui::Selectable(name.c_str(), m_SelectedElement == name)) 
+			{
+				m_SelectedElement = name;
+			}
+
+			ImGui::PopID();
+		}
+		ImGui::EndListBox();
+	}
+
+	ImGui::End();
+
+	// New Element Creator
+	ImGui::Begin("Create New Element");
+
+	static int elementCount = 1;
+
+	static char elementName[64] = "";
+	if (strlen(elementName) == 0) // If the name field is empty
+	{
+		snprintf(elementName, sizeof(elementName), "NewElement%d", elementCount);
+	}	
+	
+	static ImVec4 elementColor = { 1, 1, 1, 1 }; // Default color (white)
+	static int mainComponent = 0;          // 0 = Solid, 1 = Liquid, 2 = Gas
+	static bool hasGravity = false;        // Gravity component (extra for Solid/Liquid)
+
+	// Input for element name
+	ImGui::InputText("Name", elementName, IM_ARRAYSIZE(elementName));
+
+	// Color picker
+	ImGui::ColorEdit3("Color", (float*)&elementColor);
+
+	// Main component selection (radio buttons)
+	ImGui::Text("Main Component:");
+	if (ImGui::RadioButton("Solid", &mainComponent, 0)) { hasGravity = false; } // Reset invalid extras
+	if (ImGui::RadioButton("Liquid", &mainComponent, 1)) { hasGravity = false; }
+	if (ImGui::RadioButton("Gas", &mainComponent, 2)) { hasGravity = false; }
+
+	// Extra components
+	ImGui::Text("Extra Components:");
+	if (mainComponent == 0) // Solid
+	{
+		ImGui::Checkbox("Gravity", &hasGravity); // Gravity allowed for Solid
+	}
+	else if (mainComponent == 1) // Liquid
+	{
+		ImGui::Checkbox("Gravity", &hasGravity); // Gravity allowed for Liquid
+	}
+	else if (mainComponent == 2) // Gas
+	{
+		ImGui::Text("No Gravity component allowed for Gas");
+	}
+
+	// Add Element button
+	if (ImGui::Button("Add Element"))
+	{
+		// Convert ImVec4 to hex color
+		uint32_t hexColor = ((int)(elementColor.x * 255) << 16) |
+			((int)(elementColor.y * 255) << 8) |
+			((int)(elementColor.z * 255));
+
+		// Build the component list
+		std::unordered_map<std::string, Component> components;
+
+		// Add the selected main component
+		switch (mainComponent)
+		{
+		case 0: // Solid
+			components["Solid"] = SolidComp{ 1.0f }; // Example density
+			break;
+		case 1: // Liquid
+			components["Liquid"] = LiquidComp{ 0.1f, 15.0f }; // Example values
+			break;
+		case 2: // Gas
+			components["Gas"] = GasComp{ 0.1f, 15.0f }; // Example values
+			break;
+		}
+
+		// Add extra components
+		if (mainComponent != 2 && hasGravity) // Gas cannot have Gravity
+			components["Gravity"] = GravityComp{ 2.0f };
+
+		// Add the new element to the registry
+		m_pElementRegistry->AddElementType({ elementName, hexColor, components });
+
+		// Increment element count and reset inputs
+		elementCount++;
+		snprintf(elementName, sizeof(elementName), "NewElement%d", elementCount); // Reset name field
+		elementColor = { 1, 1, 1, 1 };
+		mainComponent = 0; // Default to Solid
+		hasGravity = false;
+	}
+
+	ImGui::End();
+	ImGui::Render();
+
 }
 
 void Grid::RenderBrush(Window* window) const
@@ -195,7 +310,7 @@ void Grid::RenderBrush(Window* window) const
 	// Define grid properties
 	int gridOriginX = m_GridInfo.pos.x; // X position of grid origin on screen
 	int gridOriginY = m_GridInfo.pos.y; // Y position of grid origin on screen
-	int cellSize = m_GridInfo.cellSize;       // Size of a single cell in pixels
+	int cellSize = m_GridInfo.cellSize; // Size of a single cell in pixels
 
 	// Calculate the center of the brush in screen space
 	int screenCenterX = gridOriginX + gridMousePos.x * cellSize + cellSize / 2;

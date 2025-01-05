@@ -43,7 +43,8 @@ public:
 	void RemoveElement(ElementID id);
 	Element* GetElementData(ElementID id);
 	const ElementDefinition& GetElementType(const std::string& name) const;
-
+	const std::unordered_map<std::string, ElementDefinition>& GetElementTypes() const;
+	void AddElementType(const ElementDefinition& definition);
 private:
 	// map unique element ids to unique element data
 	std::unordered_map<ElementID, Element> m_ElementData{};

@@ -19,7 +19,7 @@ public:
     void Update();
     void FixedUpdate();
     void Render() const;
-    void ProcessInput();  // Handles all input, including window close
+    void ProcessInput();
 
 private:
     Window* m_pWindow;

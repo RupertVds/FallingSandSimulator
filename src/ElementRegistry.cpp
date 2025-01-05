@@ -81,3 +81,13 @@ const ElementDefinition& ElementRegistry::GetElementType(const std::string& name
 {
     return m_ElementTypes.at(name);
 }
+
+const std::unordered_map<std::string, ElementDefinition>& ElementRegistry::GetElementTypes() const
+{
+    return m_ElementTypes;
+}
+
+void ElementRegistry::AddElementType(const ElementDefinition& definition)
+{
+    m_ElementTypes[definition.name] = definition;
+}
