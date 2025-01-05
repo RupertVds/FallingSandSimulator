@@ -4,7 +4,6 @@
 #include "Window.h"
 #include <chrono>
 
-
 class Game final
 {
 public:

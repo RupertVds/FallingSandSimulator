@@ -31,6 +31,19 @@ ElementRegistry::ElementRegistry()
     }
     };
     m_ElementTypes["Wall"] = wall;
+
+    ElementDefinition wood{ "Wood", 0x784520,
+    {
+    }
+    };
+    m_ElementTypes["Wood"] = wood;
+
+    //ElementDefinition fire{ "Fire", 0xde5f0b,
+    ElementDefinition fire{ "Fire", 0xfc6908,
+{
+}
+    };
+    m_ElementTypes["Fire"] = fire;
 }
 
 ElementID ElementRegistry::AddElement(const std::string& elementTypeName)

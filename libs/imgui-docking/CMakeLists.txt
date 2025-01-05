@@ -9,10 +9,14 @@ target_sources(imgui PRIVATE
 "${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_tables.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui_widgets.cpp"
 "${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_sdl2.cpp"
-"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_opengl3.cpp"
+"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends/imgui_impl_sdlrenderer.cpp"
 )
 
-target_include_directories(imgui PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/imgui")
+target_include_directories(imgui PUBLIC 
+	"${CMAKE_CURRENT_SOURCE_DIR}/imgui"
+	"${CMAKE_CURRENT_SOURCE_DIR}/imgui/backends"
+	)
+
 
 
 target_link_libraries(imgui PUBLIC SDL2-static glad)

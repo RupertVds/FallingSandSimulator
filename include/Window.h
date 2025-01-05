@@ -11,7 +11,8 @@ public:
     bool Init();
     void Clear() const;
     void Update() const;
-    SDL_Renderer* GetRenderer() const { return m_pRenderer; }
+    SDL_Renderer* GetSDLRenderer() const { return m_pRenderer; }
+    SDL_Window* GetSDLWindow() const { return m_pWindow; }
     int GetHeight() const { return m_Height; }
     int GetWidth() const { return m_Width; }
 

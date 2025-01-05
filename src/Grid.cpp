@@ -141,6 +141,14 @@ void Grid::UpdateInput()
 	{
 		m_ElementToDraw = "Smoke";
 	}
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_5))
+	{
+		m_ElementToDraw = "Wood";
+	}
+	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_6))
+	{
+		m_ElementToDraw = "Fire";
+	}
 
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
 	{
@@ -198,7 +206,7 @@ void Grid::RenderBrush(Window* window) const
 	int segments = 100;                    // Number of segments to approximate the circle
 
 	// Set the draw color
-	SDL_SetRenderDrawColor(window->GetRenderer(), 255, 255, 255, 128);
+	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 255, 255, 255, 128);
 
 	// Calculate and draw the circle using line segments
 	for (int i = 0; i < segments; ++i)
@@ -212,20 +220,20 @@ void Grid::RenderBrush(Window* window) const
 		int x2 = static_cast<int>(screenCenterX + radius * cos(theta2));
 		int y2 = static_cast<int>(screenCenterY + radius * sin(theta2));
 
-		SDL_RenderDrawLine(window->GetRenderer(), y1, x1, y2, x2);
+		SDL_RenderDrawLine(window->GetSDLRenderer(), y1, x1, y2, x2);
 	}
 }
 
 void Grid::RenderGrid(Window* window) const
 {
-	SDL_SetRenderDrawColor(window->GetRenderer(), 255, 0, 0, 255); // Bright red for bounds
+	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 255, 0, 0, 255); // Bright red for bounds
 	SDL_Rect gridBounds = {
 		m_GridInfo.pos.x,
 		m_GridInfo.pos.y,
 		m_GridInfo.columns * m_GridInfo.cellSize,
 		m_GridInfo.rows * m_GridInfo.cellSize
 	};
-	SDL_RenderDrawRect(window->GetRenderer(), &gridBounds);
+	SDL_RenderDrawRect(window->GetSDLRenderer(), &gridBounds);
 }
 
 void Grid::RenderElements(Window* window) const
@@ -237,7 +245,7 @@ void Grid::RenderElements(Window* window) const
 	if (!gridTexture)
 	{
 		gridTexture = SDL_CreateTexture(
-			window->GetRenderer(),
+			window->GetSDLRenderer(),
 			SDL_PIXELFORMAT_RGB888,
 			SDL_TEXTUREACCESS_STREAMING,
 			this->GetColumns(),
@@ -306,7 +314,7 @@ void Grid::RenderElements(Window* window) const
 		m_GridInfo.cellSize * this->GetColumns(),
 		m_GridInfo.cellSize * this->GetRows() };
 
-	SDL_RenderCopy(window->GetRenderer(), gridTexture, nullptr, &destRect);
+	SDL_RenderCopy(window->GetSDLRenderer(), gridTexture, nullptr, &destRect);
 }
 
 inline ElementID Grid::GetElementID(int x, int y) const
