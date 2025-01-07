@@ -190,7 +190,7 @@ void Grid::Render(Window* window) const
 	ImGui::Begin("Element Selector");
 
 	if (ImGui::BeginListBox("##Elements", ImVec2(300, 200)))
-	{ // Adjust size as needed
+	{
 		const auto& elementTypes = m_pElementRegistry->GetElementTypes();
 
 		for (const auto& [name, definition] : elementTypes)
@@ -201,7 +201,7 @@ void Grid::Render(Window* window) const
 			ImVec4 color = HexToImVec4(definition.color);
 			ImGui::ColorButton("Color", color, 0, ImVec2(20, 20));
 			ImGui::SameLine();
-			if (ImGui::Selectable(name.c_str(), m_SelectedElement == name)) 
+			if (ImGui::Selectable(name.c_str(), m_SelectedElement == name))
 			{
 				m_SelectedElement = name;
 			}
@@ -222,11 +222,11 @@ void Grid::Render(Window* window) const
 	if (strlen(elementName) == 0) // If the name field is empty
 	{
 		snprintf(elementName, sizeof(elementName), "NewElement%d", elementCount);
-	}	
-	
+	}
+
 	static ImVec4 elementColor = { 1, 1, 1, 1 }; // Default color (white)
-	static int mainComponent = 0;          // 0 = Solid, 1 = Liquid, 2 = Gas
-	static bool hasGravity = false;        // Gravity component (extra for Solid/Liquid)
+	static int mainComponent = -1;              // -1 = None, 0 = Solid, 1 = Liquid, 2 = Gas
+	static bool hasGravity = false;             // Gravity component (extra for Solid/Liquid)
 
 	// Input for element name
 	ImGui::InputText("Name", elementName, IM_ARRAYSIZE(elementName));
@@ -236,7 +236,8 @@ void Grid::Render(Window* window) const
 
 	// Main component selection (radio buttons)
 	ImGui::Text("Main Component:");
-	if (ImGui::RadioButton("Solid", &mainComponent, 0)) { hasGravity = false; } // Reset invalid extras
+	if (ImGui::RadioButton("None", &mainComponent, -1)) { hasGravity = false; } // Reset invalid extras
+	if (ImGui::RadioButton("Solid", &mainComponent, 0)) { hasGravity = false; }
 	if (ImGui::RadioButton("Liquid", &mainComponent, 1)) { hasGravity = false; }
 	if (ImGui::RadioButton("Gas", &mainComponent, 2)) { hasGravity = false; }
 
@@ -252,7 +253,11 @@ void Grid::Render(Window* window) const
 	}
 	else if (mainComponent == 2) // Gas
 	{
-		ImGui::Text("No Gravity component allowed for Gas");
+		ImGui::Text("No extra components allowed for Gas.");
+	}
+	else if (mainComponent == -1) // None
+	{
+		ImGui::Text("No components selected.");
 	}
 
 	// Add Element button
@@ -278,10 +283,13 @@ void Grid::Render(Window* window) const
 		case 2: // Gas
 			components["Gas"] = GasComp{ 0.1f, 15.0f }; // Example values
 			break;
+		case -1: // None
+			// Leave components empty
+			break;
 		}
 
 		// Add extra components
-		if (mainComponent != 2 && hasGravity) // Gas cannot have Gravity
+		if (mainComponent != 2 && hasGravity) // Gas and None cannot have Gravity
 			components["Gravity"] = GravityComp{ 2.0f };
 
 		// Add the new element to the registry
@@ -291,14 +299,14 @@ void Grid::Render(Window* window) const
 		elementCount++;
 		snprintf(elementName, sizeof(elementName), "NewElement%d", elementCount); // Reset name field
 		elementColor = { 1, 1, 1, 1 };
-		mainComponent = 0; // Default to Solid
+		mainComponent = -1; // Default to None
 		hasGravity = false;
 	}
 
 	ImGui::End();
 	ImGui::Render();
-
 }
+
 
 void Grid::RenderBrush(Window* window) const
 {
