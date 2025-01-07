@@ -21,7 +21,8 @@ ElementRegistry::ElementRegistry()
 
     ElementDefinition smoke{ "Smoke", 0x848884,
         {
-            {"Gas", GasComp{5.f}}
+            {"Gas", GasComp{5.f}},
+            {"Lifetime", LifeTimeComp{5.f, ""}}
         }
     };
     m_ElementTypes["Smoke"] = smoke;
@@ -34,14 +35,19 @@ ElementRegistry::ElementRegistry()
 
     ElementDefinition wood{ "Wood", 0x784520,
     {
+        {"Spreadable", SpreadableComp{1.f, 3.f}},
+        {"Solid", SolidComp{1.f}},
+        {"Gravity", GravityComp{2.f}}
     }
     };
     m_ElementTypes["Wood"] = wood;
 
     //ElementDefinition fire{ "Fire", 0xde5f0b,
     ElementDefinition fire{ "Fire", 0xfc6908,
-{
-}
+    {
+        {"Spreading", SpreadingComp{5.f, 0.1f}},
+        {"Lifetime", LifeTimeComp{1.f, "Smoke"}}
+    }
     };
     m_ElementTypes["Fire"] = fire;
 }
@@ -62,7 +68,19 @@ ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
     // Generate a random tint adjustment (-15 to +15)
     int8_t randomTint = static_cast<int8_t>((rand() % 31) - 15);
 
-    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f}, false, randomTint };
+    m_ElementData[id] = { &m_ElementTypes[elementTypeName], glm::vec2{0.0f, 0.0f}, false, false, 0, randomTint };
+
+    Element* element = GetElementData(id);
+
+    if (element)
+    {
+        auto it = element->definition->components.find("Lifetime");
+        if (it != element->definition->components.end())
+        {
+            const LifeTimeComp* lifetimeComp = std::get_if<LifeTimeComp>(&it->second); // Safely retrieve the component
+            element->lifeTime = lifetimeComp->maxLifeTime;
+        }
+    }
     return id;
 }
 
@@ -77,9 +95,10 @@ Element* ElementRegistry::GetElementData(ElementID id)
     return it != m_ElementData.end() ? &it->second : nullptr;
 }
 
-const ElementDefinition& ElementRegistry::GetElementType(const std::string& name) const
+const ElementDefinition* ElementRegistry::GetElementType(const std::string& name) const
 {
-    return m_ElementTypes.at(name);
+    auto it = m_ElementTypes.find(name);
+    return it != m_ElementTypes.end() ? &it->second : nullptr;
 }
 
 const std::unordered_map<std::string, ElementDefinition>& ElementRegistry::GetElementTypes() const

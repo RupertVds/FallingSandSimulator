@@ -9,7 +9,7 @@
 
 
 // I erase the type so we can store all kinds of components
-using Component = std::variant<SolidComp, LiquidComp, GasComp, GravityComp, FlammableComp>;
+using Component = std::variant<SolidComp, LiquidComp, GasComp, GravityComp, SpreadableComp, SpreadingComp, LifeTimeComp>;
 
 struct ElementDefinition
 {
@@ -26,7 +26,11 @@ struct Element
 	const ElementDefinition* definition{}; // Pointer to the shared particle type definition
 	glm::vec2 velocity{};
 	bool hasMoved{};
-	int8_t tint; // Tint adjustment (-128 to 127)
+	bool hasSpread{};
+	int spreadCount{};
+	int8_t tint{}; // Tint adjustment (-128 to 127)
+	float lifeTime{ -1.f };
+	bool toBeDestroyed{};
 };
 
 class ElementRegistry final
@@ -42,7 +46,7 @@ public:
 	ElementID AddElement(const std::string& elementTypeName);
 	void RemoveElement(ElementID id);
 	Element* GetElementData(ElementID id);
-	const ElementDefinition& GetElementType(const std::string& name) const;
+	const ElementDefinition* GetElementType(const std::string& name) const;
 	const std::unordered_map<std::string, ElementDefinition>& GetElementTypes() const;
 	void AddElementType(const ElementDefinition& definition);
 private:

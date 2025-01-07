@@ -56,6 +56,7 @@ public:
 	inline bool IsEmpty(int x, int y) const;
 	inline bool IsEmpty(const glm::ivec2& pos) const;
 	inline bool IsEvenFrame() const;
+	const ElementRegistry* GetElementRegistry() const { return m_pElementRegistry.get(); };
 
 	void MoveElement(int x, int y, int newX, int newY);
 	void SwapElements(int x, int y, int newX, int newY);

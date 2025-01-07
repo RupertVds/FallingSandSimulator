@@ -43,6 +43,8 @@ void ProcessGas(Element* element, int x, int y, Grid& grid);
 bool CanSolidReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
 bool CanLiquidReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
 bool CanGasReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
+void UpdateSpreading(Element* element, int x, int y, Grid& grid);
+void UpdateLifetime(Element* element, int x, int y, Grid& grid);
 
 void UpdateGridElements(Grid& grid)
 {
@@ -71,10 +73,13 @@ void UpdateGridElements(Grid& grid)
 
             // HANDLE MODIFIER COMPONENTS
             // Additional components (flammable, etc.)
-            if (HasComponent<FlammableComp>(element, "Flammable"))
+            if (!element->hasSpread)
             {
-                //handle flammable logic
+                UpdateSpreading(element, x, y, grid);
+                element->hasSpread = true;
             }
+
+            UpdateLifetime(element, x, y, grid);
 
             // Cache if the element is Solid, Liquid or Gas to reduce checking it in the Bresenham's algorithm
             bool isSolid = HasComponent<SolidComp>(element, "Solid");
@@ -160,19 +165,17 @@ void UpdateGridElements(Grid& grid)
 			if (isSolid)
 			{
 				ProcessSolid(element, lastValidPos.x, lastValidPos.y, grid);
-                element->hasMoved = true;
 			}
 			else if (isLiquid)
 			{
 				auto* liquidComp = TryGetComponent<LiquidComp>(element, "Liquid");
 				ProcessLiquid(element, lastValidPos.x, lastValidPos.y, grid, liquidComp->dispersionRate);
-                element->hasMoved = true;
 			}
 			else if (isGas)
 			{
 				ProcessGas(element, lastValidPos.x, lastValidPos.y, grid);
-                element->hasMoved = true;
 			}
+            element->hasMoved = true;
 
             // now we process the interaction with other elements
             // Let particles affect neighbours (heat component, etc)
@@ -185,10 +188,16 @@ void UpdateGridElements(Grid& grid)
         for (int y = 0; y < grid.GetColumns(); ++y)
         {
             Element* element = grid.GetElementData(x, y);
-            if (element)
+            if (!element) continue;
+
+            if (element->toBeDestroyed)
             {
-                element->hasMoved = false;
+                grid.RemoveElementAt(x, y);
+                continue;
             }
+
+            element->hasMoved = false;
+            element->hasSpread = false;
         }
     }
 }
@@ -582,5 +591,84 @@ void ProcessSolid(Element* element, int x, int y, Grid& grid)
     }
 }
 
+void UpdateSpreading(Element* element, int x, int y, Grid& grid)
+{
+    // Check if the element has a spreading component
+    const SpreadingComp* spreadingComp = TryGetComponent<SpreadingComp>(element, "Spreading");
+    if (!spreadingComp)
+        return; // No spreading component, exit early
 
+    // Iterate over neighbors
+    for (int dx = -1; dx <= 1; ++dx)
+    {
+        for (int dy = -1; dy <= 1; ++dy)
+        {
+            // Skip the center cell (no need to check the current element itself)
+            if (dx == 0 && dy == 0)
+                continue;
+
+            int neighborX = x + dx;
+            int neighborY = y + dy;
+
+            // Ensure the neighbor is within grid bounds
+            if (!grid.IsWithinBounds(neighborX, neighborY))
+                continue;
+
+            float randomChance = static_cast<float>(rand()) / static_cast<float>(RAND_MAX);
+            if (randomChance > spreadingComp->spreadChance) continue;
+
+            Element* neighbor = grid.GetElementData(neighborX, neighborY);
+
+            // Check if the neighbor has a Spreadable component (such as Flammable)
+            const SpreadableComp* spreadableComp = TryGetComponent<SpreadableComp>(neighbor, "Spreadable");
+            if (!spreadableComp) continue;
+            
+            // Spread if the spreading factor is greater than the spread threshold
+            if (spreadingComp->spreadFactor > spreadableComp->spreadThreshold)
+            {
+                ++neighbor->spreadCount;
+
+                // Replace the neighbor with the current element type
+                // Assign the new element definition to the neighbor
+                if (neighbor->spreadCount >= spreadableComp->spreadResistance)
+                {
+                    neighbor->definition = element->definition;
+
+                    const LifeTimeComp* lifetimeComp = TryGetComponent<LifeTimeComp>(neighbor, "Lifetime");
+                    if(lifetimeComp)
+                    {
+                        neighbor->lifeTime = lifetimeComp->maxLifeTime;
+                    }
+
+                    neighbor->spreadCount = 0;
+                }
+            }
+        }
+    }
+}
+
+void UpdateLifetime(Element* element, int x, int y, Grid& grid)
+{
+    const LifeTimeComp* lifetimeComp = TryGetComponent<LifeTimeComp>(element, "Lifetime");
+    if (!lifetimeComp)
+        return;
+
+    element->lifeTime -= ServiceLocator::GetSandSimulator().GetFixedTimeStep();
+    if (element->lifeTime <= 0)
+    {
+        //grid.RemoveElementAt(x, y);
+        const ElementDefinition* elementDef = grid.GetElementRegistry()->GetElementType(lifetimeComp->elementToSpawn);
+        if (elementDef)
+        {
+            element->lifeTime = lifetimeComp->maxLifeTime;
+            element->definition = elementDef;
+        }
+        else
+        {
+            element->toBeDestroyed = true;
+        }
+    }
+
+   // element->alphaValue = // is 255 by default, we can lower it depending on how close lifetime is to 0
+}
 #endif // !SYSTEMS_H

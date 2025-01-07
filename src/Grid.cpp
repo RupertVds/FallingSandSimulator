@@ -307,7 +307,6 @@ void Grid::Render(Window* window) const
 	ImGui::Render();
 }
 
-
 void Grid::RenderBrush(Window* window) const
 {
 	if (!m_MouseIsInGrid) return;

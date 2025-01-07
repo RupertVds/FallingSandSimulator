@@ -32,7 +32,7 @@ Game::Game()
     ImGui_ImplSDLRenderer_Init(m_pWindow->GetSDLRenderer());
 
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 320, 480, 2 }, m_pWindow));
-    int cellSize{ 8 };
+    int cellSize{ 4 };
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{0, 0}, m_pWindow->GetHeight() / cellSize, m_pWindow->GetWidth() / cellSize, cellSize }, m_pWindow));
     ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{20, 20}, 600 / cellSize, 1000 / cellSize, cellSize }, m_pWindow));
     //ServiceLocator::RegisterSandSimulation(std::make_unique<CPUSandSimulation>(GridInfo{ glm::ivec2{10, 10}, 500, 500, 2 }, m_pWindow));
