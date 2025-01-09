@@ -4,6 +4,7 @@
 #include "Utils.h"
 #include <algorithm>
 
+
 #define SOUTH glm::ivec2{1, 0}
 #define SOUTH_WEST glm::ivec2{1, -1}
 #define SOUTH_EAST glm::ivec2{1, 1}
@@ -45,6 +46,7 @@ bool CanLiquidReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
 bool CanGasReachTarget(glm::ivec2 start, glm::ivec2 target, Grid& grid);
 void UpdateSpreading(Element* element, int x, int y, Grid& grid);
 void UpdateLifetime(Element* element, int x, int y, Grid& grid);
+float GetRandomFloat(float min, float max);
 
 void UpdateGridElements(Grid& grid)
 {
@@ -78,7 +80,6 @@ void UpdateGridElements(Grid& grid)
                 UpdateSpreading(element, x, y, grid);
                 element->hasSpread = true;
             }
-
             UpdateLifetime(element, x, y, grid);
 
             // Cache if the element is Solid, Liquid or Gas to reduce checking it in the Bresenham's algorithm
@@ -637,7 +638,8 @@ void UpdateSpreading(Element* element, int x, int y, Grid& grid)
                     const LifeTimeComp* lifetimeComp = TryGetComponent<LifeTimeComp>(neighbor, "Lifetime");
                     if(lifetimeComp)
                     {
-                        neighbor->lifeTime = lifetimeComp->maxLifeTime;
+                        neighbor->lifeTime = lifetimeComp->minLifeTime + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (lifetimeComp->maxLifeTime - lifetimeComp->minLifeTime));;
+                        neighbor->hasMoved = true;
                     }
 
                     neighbor->spreadCount = 0;
@@ -660,7 +662,7 @@ void UpdateLifetime(Element* element, int x, int y, Grid& grid)
         const ElementDefinition* elementDef = grid.GetElementRegistry()->GetElementType(lifetimeComp->elementToSpawn);
         if (elementDef)
         {
-            element->lifeTime = lifetimeComp->maxLifeTime;
+            element->lifeTime = GetRandomFloat(lifetimeComp->minLifeTime, lifetimeComp->maxLifeTime);
             element->definition = elementDef;
         }
         else
@@ -668,7 +670,14 @@ void UpdateLifetime(Element* element, int x, int y, Grid& grid)
             element->toBeDestroyed = true;
         }
     }
+}
 
-   // element->alphaValue = // is 255 by default, we can lower it depending on how close lifetime is to 0
+float GetRandomFloat(float min, float max)
+{
+    // Ensure the range is valid
+    if (min > max) std::swap(min, max);
+
+    // Scale and shift the random value
+    return min + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (max - min));
 }
 #endif // !SYSTEMS_H

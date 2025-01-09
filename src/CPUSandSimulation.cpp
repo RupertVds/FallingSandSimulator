@@ -42,15 +42,6 @@ void CPUSandSimulation::Update()
         std::cout << "STEPPED SIMULATION\n";
     }
 
-    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_R))
-    {
-        Init();
-    }
-    if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_X))
-    {
-        m_pGrid->ClearGrid();
-    }
-
     m_pGrid->Update();
 }
 

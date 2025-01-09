@@ -29,7 +29,7 @@ public:
 
 	void Update();
 	void FixedUpdate();
-	void Render(Window* window) const;
+	void Render(Window* window);
 
 	void UpdateElements();
 	void UpdateInput();

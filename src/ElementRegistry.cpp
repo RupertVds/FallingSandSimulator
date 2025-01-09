@@ -11,7 +11,7 @@ ElementRegistry::ElementRegistry()
     };
     m_ElementTypes["Sand"] = sand;
 
-    ElementDefinition water{ "Water", 0x3498DB, 
+    ElementDefinition water{ "Water", 0x3498DB,
         {
             {"Liquid", LiquidComp{0.1f, 15.f}},
             {"Gravity", GravityComp{2.f}}
@@ -22,7 +22,7 @@ ElementRegistry::ElementRegistry()
     ElementDefinition smoke{ "Smoke", 0x848884,
         {
             {"Gas", GasComp{5.f}},
-            {"Lifetime", LifeTimeComp{5.f, ""}}
+            {"Lifetime", LifeTimeComp{5.f, 8.f, "Empty"}}
         }
     };
     m_ElementTypes["Smoke"] = smoke;
@@ -35,7 +35,7 @@ ElementRegistry::ElementRegistry()
 
     ElementDefinition wood{ "Wood", 0x784520,
     {
-        {"Spreadable", SpreadableComp{1.f, 3.f}},
+        {"Spreadable", SpreadableComp{0.1f, 3}},
         {"Solid", SolidComp{1.f}},
         {"Gravity", GravityComp{2.f}}
     }
@@ -46,7 +46,7 @@ ElementRegistry::ElementRegistry()
     ElementDefinition fire{ "Fire", 0xfc6908,
     {
         {"Spreading", SpreadingComp{5.f, 0.1f}},
-        {"Lifetime", LifeTimeComp{1.f, "Smoke"}}
+        {"Lifetime", LifeTimeComp{1.f, 1.5f, "Smoke"}}
     }
     };
     m_ElementTypes["Fire"] = fire;
@@ -78,7 +78,7 @@ ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
         if (it != element->definition->components.end())
         {
             const LifeTimeComp* lifetimeComp = std::get_if<LifeTimeComp>(&it->second); // Safely retrieve the component
-            element->lifeTime = lifetimeComp->maxLifeTime;
+            element->lifeTime = lifetimeComp->minLifeTime + static_cast<float>(rand()) / static_cast<float>(RAND_MAX / (lifetimeComp->maxLifeTime - lifetimeComp->minLifeTime));;
         }
     }
     return id;

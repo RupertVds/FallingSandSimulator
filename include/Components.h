@@ -20,7 +20,6 @@ struct LiquidComp
 struct GasComp
 {
     float density{};
-    float riseRate{}; // Upward velocity
 };
 
 struct GravityComp
@@ -31,7 +30,7 @@ struct GravityComp
 struct SpreadableComp
 {
     float spreadThreshold{}; // spreadfactor at which the element gets taken over by the spreading element (like fire)
-    float spreadResistance{}; // how many update steps a spreading component needs to spread to this
+    int spreadResistance{}; // how many update steps a spreading component needs to spread to this
 };
 
 struct SpreadingComp
@@ -42,7 +41,8 @@ struct SpreadingComp
 
 struct LifeTimeComp
 {
-    float maxLifeTime{}; // -1 for infinite
+    float minLifeTime{};
+    float maxLifeTime{};
     std::string elementToSpawn{};
 };
 

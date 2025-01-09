@@ -127,30 +127,6 @@ void Grid::UpdateInput()
 		}
 	}
 	
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_1))
-	{
-		m_SelectedElement = "Wall";
-	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_2))
-	{
-		m_SelectedElement = "Sand";
-	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_3))
-	{
-		m_SelectedElement = "Water";
-	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_4))
-	{
-		m_SelectedElement = "Smoke";
-	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_5))
-	{
-		m_SelectedElement = "Wood";
-	}
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_6))
-	{
-		m_SelectedElement = "Fire";
-	}
 
 	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
 	{
@@ -180,16 +156,35 @@ void Grid::UpdateElements()
 	UpdateGridElements(*this);
 }
 
-void Grid::Render(Window* window) const
+void Grid::Render(Window* window)
 {
 	RenderElements(window);
 	RenderGrid(window);
 	RenderBrush(window);
 
-	ImGui::NewFrame();
-	ImGui::Begin("Element Selector");
+	ImGui::Begin("Clear Grid", nullptr, 
+		ImGuiWindowFlags_NoBackground | 
+		ImGuiWindowFlags_NoDocking | 
+		ImGuiWindowFlags_NoTitleBar |
+		ImGuiWindowFlags_NoMove |
+		ImGuiWindowFlags_NoCollapse |
+		ImGuiWindowFlags_NoResize |
+		ImGuiWindowFlags_NoScrollbar
+	);
 
-	if (ImGui::BeginListBox("##Elements", ImVec2(300, 200)))
+	ImGui::SetWindowPos("Clear Grid", { 20, 625 });
+
+	if (ImGui::Button("Clear Grid", { 100, 25 }))
+	{
+		ClearGrid();
+	}
+
+	ImGui::End();
+
+	ImGui::Begin("Element Selector");
+	ImGui::SetWindowPos("Element Selector", { 1050, 20 });
+
+	if (ImGui::BeginListBox("##Elements", ImVec2(200, 200)))
 	{
 		const auto& elementTypes = m_pElementRegistry->GetElementTypes();
 
@@ -215,6 +210,7 @@ void Grid::Render(Window* window) const
 
 	// New Element Creator
 	ImGui::Begin("Create New Element");
+	ImGui::SetWindowPos("Create New Element", { 1300, 20 });
 
 	static int elementCount = 1;
 
@@ -226,7 +222,7 @@ void Grid::Render(Window* window) const
 
 	static ImVec4 elementColor = { 1, 1, 1, 1 }; // Default color (white)
 	static int mainComponent = -1;              // -1 = None, 0 = Solid, 1 = Liquid, 2 = Gas
-	static bool hasGravity = false;             // Gravity component (extra for Solid/Liquid)
+	static bool hasGravity = true;             // Gravity component (extra for Solid/Liquid)
 
 	// Input for element name
 	ImGui::InputText("Name", elementName, IM_ARRAYSIZE(elementName));
@@ -234,30 +230,104 @@ void Grid::Render(Window* window) const
 	// Color picker
 	ImGui::ColorEdit3("Color", (float*)&elementColor);
 
+	// Main comp specific inputs
+	static float solidDensity{ 1.f };
+
+	static float liquidDensity{ 0.1f };
+	static float liquidDispersionRate{ 5.f };
+
+	static float gasDensity{ 0.1f };
+
+	static float gravityScale{ 2.f };
+
+
+	// Spreading comp inputs
+	static bool hasSpreading{};
+	static float spreadFactor{ 0.3f };
+	static float spreadChance{ 0.25f };
+
+	// Spreadable comp inputs
+	static bool hasSpreadable{};
+	static float spreadThreshold{ 1.f };
+	static int spreadResistance{ 4 };
+
+	// Lifetime comp inputs
+	static bool hasLifeTime{};
+	static float minLifeTime{ 1.f };
+	static float maxLifeTime{ 1.5f };
+	static char spawnElementName[64]{ "" };
+
+
 	// Main component selection (radio buttons)
 	ImGui::Text("Main Component:");
 	if (ImGui::RadioButton("None", &mainComponent, -1)) { hasGravity = false; } // Reset invalid extras
-	if (ImGui::RadioButton("Solid", &mainComponent, 0)) { hasGravity = false; }
-	if (ImGui::RadioButton("Liquid", &mainComponent, 1)) { hasGravity = false; }
+	if (ImGui::RadioButton("Solid", &mainComponent, 0)) { hasGravity = true; }
+	if (ImGui::RadioButton("Liquid", &mainComponent, 1)) { hasGravity = true; }
 	if (ImGui::RadioButton("Gas", &mainComponent, 2)) { hasGravity = false; }
 
 	// Extra components
-	ImGui::Text("Extra Components:");
+	ImGui::Separator();
 	if (mainComponent == 0) // Solid
 	{
-		ImGui::Checkbox("Gravity", &hasGravity); // Gravity allowed for Solid
+		ImGui::Text("Solid Component Settings");
+		ImGui::InputFloat("Density (Solid)", &solidDensity, 0.1f, 1.0f, "%.2f");
+		ImGui::Checkbox("Gravity", &hasGravity);
+		if (hasGravity)
+		{
+			ImGui::InputFloat("Gravity Scale", &gravityScale, 0.1f, 1.0f, "%.2f");
+		}
 	}
 	else if (mainComponent == 1) // Liquid
 	{
-		ImGui::Checkbox("Gravity", &hasGravity); // Gravity allowed for Liquid
+		ImGui::Text("Liquid Component Settings");
+		ImGui::InputFloat("Density (Liquid)", &liquidDensity, 0.1f, 1.0f, "%.2f");
+		ImGui::InputFloat("Dispersion Rate", &liquidDispersionRate, 1.0f, 10.0f, "%.2f");
+		ImGui::Checkbox("Gravity", &hasGravity);
+		if (hasGravity)
+		{
+			ImGui::InputFloat("Gravity Scale", &gravityScale, 0.1f, 1.0f, "%.2f");
+		}
 	}
 	else if (mainComponent == 2) // Gas
 	{
-		ImGui::Text("No extra components allowed for Gas.");
+		ImGui::Text("Gas Component Settings");
+		ImGui::InputFloat("Density (Gas)", &gasDensity, 0.1f, 1.0f, "%.2f");
 	}
 	else if (mainComponent == -1) // None
 	{
-		ImGui::Text("No components selected.");
+		ImGui::Text("No main component selected.");
+	}
+
+	// Additional Components
+	ImGui::Separator();
+	ImGui::Text("Optional Components:");
+
+	// Spreadable Component
+	ImGui::Checkbox("Spreadable Component", &hasSpreadable);
+	if (hasSpreadable)
+	{
+		ImGui::Text("Spreadable Component Settings");
+		ImGui::InputFloat("Spread Threshold", &spreadThreshold, 0.1f, 1.0f, "%.2f");
+		ImGui::InputInt("Spread Resistance", &spreadResistance, 0.1, 1.0);
+	}
+
+	// Spreading Component
+	ImGui::Checkbox("Spreading Component", &hasSpreading);
+	if (hasSpreading)
+	{
+		ImGui::Text("Spreading Component Settings");
+		ImGui::InputFloat("Spread Factor", &spreadFactor, 0.1f, 1.0f, "%.2f");
+		ImGui::InputFloat("Spread Chance", &spreadChance, 0.01f, 0.1f, "%.2f");
+	}
+
+	// LifeTime Component
+	ImGui::Checkbox("Life Time Component", &hasLifeTime);
+	if (hasLifeTime)
+	{
+		ImGui::Text("LifeTime Component Settings");
+		ImGui::InputFloat("Min Life Time", &minLifeTime, 1.0f, 10.0f, "%.2f");
+		ImGui::InputFloat("Max Life Time", &maxLifeTime, 1.0f, 10.0f, "%.2f");
+		ImGui::InputText("Element to Spawn", spawnElementName, IM_ARRAYSIZE(spawnElementName));
 	}
 
 	// Add Element button
@@ -275,13 +345,13 @@ void Grid::Render(Window* window) const
 		switch (mainComponent)
 		{
 		case 0: // Solid
-			components["Solid"] = SolidComp{ 1.0f }; // Example density
+			components["Solid"] = SolidComp{ solidDensity };
 			break;
 		case 1: // Liquid
-			components["Liquid"] = LiquidComp{ 0.1f, 15.0f }; // Example values
+			components["Liquid"] = LiquidComp{ liquidDensity, liquidDispersionRate };
 			break;
 		case 2: // Gas
-			components["Gas"] = GasComp{ 0.1f, 15.0f }; // Example values
+			components["Gas"] = GasComp{ gasDensity};
 			break;
 		case -1: // None
 			// Leave components empty
@@ -290,7 +360,15 @@ void Grid::Render(Window* window) const
 
 		// Add extra components
 		if (mainComponent != 2 && hasGravity) // Gas and None cannot have Gravity
-			components["Gravity"] = GravityComp{ 2.0f };
+			components["Gravity"] = GravityComp{ gravityScale };
+
+		// Add optional components
+		if (hasSpreadable)
+			components["Spreadable"] = SpreadableComp{ spreadThreshold, spreadResistance };
+		if (hasSpreading)
+			components["Spreading"] = SpreadingComp{ spreadFactor, spreadChance };
+		if (hasLifeTime)
+			components["Lifetime"] = LifeTimeComp{ minLifeTime, maxLifeTime, spawnElementName };
 
 		// Add the new element to the registry
 		m_pElementRegistry->AddElementType({ elementName, hexColor, components });

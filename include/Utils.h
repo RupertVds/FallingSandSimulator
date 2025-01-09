@@ -55,5 +55,4 @@ ImVec4 HexToImVec4(uint32_t hexColor)
     return ImVec4(r, g, b, 1.0f); // Assuming full opacity
 }
 
-
 #endif // UTILS_H

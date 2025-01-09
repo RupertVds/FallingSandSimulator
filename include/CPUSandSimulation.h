@@ -22,7 +22,7 @@ public:
 	inline float GetFixedTimeStep() const override;
 	void SetFixedTimeStep(float fixedTimeStep) override;
 private:
-	bool m_IsSimulating{ false };
+	bool m_IsSimulating{ true };
 	std::unique_ptr<Grid> m_pGrid{};
 	Window* m_pWindow{};
 	float m_FixedTimeStep{};
