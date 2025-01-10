@@ -13,6 +13,12 @@ Grid::Grid(const GridInfo& gridInfo)
 	: m_GridInfo(gridInfo), m_pElementRegistry(std::make_unique<ElementRegistry>())
 {
 	m_Elements.resize(gridInfo.rows, std::vector<ElementID>(gridInfo.columns, EMPTY_CELL));
+	m_NumChunksX = (m_GridInfo.rows + m_ChunkSize - 1) / m_ChunkSize;
+	m_NumChunksY = (m_GridInfo.columns + m_ChunkSize - 1) / m_ChunkSize;
+	m_CurrentDirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
+	m_NextDirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
+	//m_DirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
+
 }
 
 Grid::~Grid()
@@ -23,14 +29,6 @@ void Grid::Init()
 {
 	m_SelectedElement = "Sand";
 	m_PreviousGridMousePos = ConvertScreenToGrid(InputManager::GetInstance().GetMousePos());
-
-	//for (int x = 0; x < this->GetRows(); ++x)
-	//{
-	//	for (int y = 0; y < this->GetColumns(); ++y)
-	//	{
-	//		AddElementAt(x, y, "Water");
-	//	}
-	//}
 }
 
 void Grid::Update()
@@ -426,7 +424,29 @@ void Grid::RenderBrush(Window* window) const
 
 void Grid::RenderGrid(Window* window) const
 {
-	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 255, 0, 0, 255); // Bright red for bounds
+	// Draw chunk boundaries
+	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 0, 128, 0, 255);
+
+	for (int chunkX = 0; chunkX < m_NumChunksX; ++chunkX)
+	{
+		for (int chunkY = 0; chunkY < m_NumChunksY; ++chunkY)
+		{
+			if (m_CurrentDirtyChunks[chunkX][chunkY])
+			{
+				SDL_SetRenderDrawColor(window->GetSDLRenderer(), 255, 255, 0, 255);
+				int startX = m_GridInfo.pos.x + chunkX * m_ChunkSize * m_GridInfo.cellSize;
+				int startY = m_GridInfo.pos.y + chunkY * m_ChunkSize * m_GridInfo.cellSize;
+				int width = m_ChunkSize * m_GridInfo.cellSize;
+				int height = m_ChunkSize * m_GridInfo.cellSize;
+
+				SDL_Rect chunkBounds = { startY, startX, width, height };
+				SDL_RenderDrawRect(window->GetSDLRenderer(), &chunkBounds);
+			}
+		}
+	}
+
+	// Draw grid
+	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 8, 8, 8, 255);
 	SDL_Rect gridBounds = {
 		m_GridInfo.pos.x,
 		m_GridInfo.pos.y,
@@ -517,6 +537,72 @@ void Grid::RenderElements(Window* window) const
 	SDL_RenderCopy(window->GetSDLRenderer(), gridTexture, nullptr, &destRect);
 }
 
+bool Grid::IsChunkDirty(int chunkX, int chunkY)
+{
+	if (chunkX >= 0 && chunkX < m_NumChunksX && chunkY >= 0 && chunkY < m_NumChunksY)
+	{
+		return m_CurrentDirtyChunks[chunkX][chunkY];
+	}
+	return false;
+}
+
+void Grid::MarkChunkAsDirty(int x, int y)
+{
+	int chunkX = x / m_ChunkSize;
+	int chunkY = y / m_ChunkSize;
+
+	// Mark the main chunk dirty
+	if (chunkX >= 0 && chunkX < m_NumChunksX && chunkY >= 0 && chunkY < m_NumChunksY)
+	{
+		m_NextDirtyChunks[chunkX][chunkY] = true;
+	}
+
+	// Check and mark adjacent chunks
+	// Check if on the right border
+	if (x % m_ChunkSize == m_ChunkSize - 1 && chunkX + 1 < m_NumChunksX)
+	{
+		m_NextDirtyChunks[chunkX + 1][chunkY] = true;
+	}
+
+	// Check if on the left border
+	if (x % m_ChunkSize == 0 && chunkX - 1 >= 0)
+	{
+		m_NextDirtyChunks[chunkX - 1][chunkY] = true;
+	}
+
+	// Check if on the bottom border
+	if (y % m_ChunkSize == m_ChunkSize - 1 && chunkY + 1 < m_NumChunksY)
+	{
+		m_NextDirtyChunks[chunkX][chunkY + 1] = true;
+	}
+
+	// Check if on the top border
+	if (y % m_ChunkSize == 0 && chunkY - 1 >= 0)
+	{
+		m_NextDirtyChunks[chunkX][chunkY - 1] = true;
+	}
+}
+
+
+void Grid::UnmarkChunkAsDirty(int x, int y)
+{
+	int chunkX = x / m_ChunkSize;
+	int chunkY = y / m_ChunkSize;
+
+	if (chunkX >= 0 && chunkX < m_NumChunksX && chunkY >= 0 && chunkY < m_NumChunksY)
+	{
+		m_NextDirtyChunks[chunkX][chunkY] = false;
+	}
+}
+
+void Grid::ResetDirtyChunks()
+{
+	for (auto& row : m_NextDirtyChunks)
+	{
+		std::fill(row.begin(), row.end(), false);
+	}
+}
+
 inline ElementID Grid::GetElementID(int x, int y) const
 {
 	return m_Elements[x][y];
@@ -530,7 +616,15 @@ ElementID Grid::GetElementID(const glm::ivec2& pos) const
 inline Element* Grid::GetElementData(int x, int y) const
 {
 	ElementID id = GetElementID(x, y);
-	return id != EMPTY_CELL ? m_pElementRegistry->GetElementData(id) : nullptr;
+	if (id == EMPTY_CELL) return nullptr;
+	//int chunkX = x / m_ChunkSize;
+	//int chunkY = y / m_ChunkSize;
+
+	//if (chunkX >= 0 && chunkX < m_NumChunksX && chunkY >= 0 && chunkY < m_NumChunksY)
+	//{
+	//	m_NextDirtyChunks[chunkX][chunkY] = true;
+	//}
+	return m_pElementRegistry->GetElementData(id);
 }
 
 Element* Grid::GetElementData(const glm::ivec2& pos) const
@@ -599,11 +693,12 @@ void Grid::AddElementBrushed(int x, int y, const std::string& elementTypeName, b
 	}
 }
 
-
 void Grid::AddElementAt(int x, int y, const std::string& elementTypeName)
 {
 	if (IsWithinBounds(x, y) && IsEmpty(x, y))
 	{
+		MarkChunkAsDirty(x, y);
+
 		ElementID id = m_pElementRegistry->AddElement(elementTypeName);
 		m_Elements[x][y] = id;
 	}
@@ -638,6 +733,9 @@ void Grid::RemoveElementAt(int x, int y)
 {
 	if (IsWithinBounds(x, y) && !IsEmpty(x, y))
 	{
+		MarkChunkAsDirty(x, y);
+
+
 		ElementID id = m_Elements[x][y];
 		m_pElementRegistry->RemoveElement(id);
 		m_Elements[x][y] = EMPTY_CELL;
@@ -662,12 +760,22 @@ inline glm::ivec2 Grid::ConvertScreenToGrid(const glm::ivec2& screenPos) const
 
 void Grid::MoveElement(int x, int y, int newX, int newY)
 {
+	if (x == newX && y == newY) return;
+
+	MarkChunkAsDirty(x, y);
+	MarkChunkAsDirty(newX, newY);
+
 	m_Elements[newX][newY] = m_Elements[x][y];
 	m_Elements[x][y] = EMPTY_CELL;
 }
 
 void Grid::SwapElements(int x, int y, int newX, int newY)
 {
+	if (x == newX && y == newY) return;
+
+	MarkChunkAsDirty(x, y);
+	MarkChunkAsDirty(newX, newY);
+
 	std::swap(m_Elements[x][y], m_Elements[newX][newY]);
 }
 

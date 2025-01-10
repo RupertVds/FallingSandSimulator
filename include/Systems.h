@@ -4,7 +4,6 @@
 #include "Utils.h"
 #include <algorithm>
 
-
 #define SOUTH glm::ivec2{1, 0}
 #define SOUTH_WEST glm::ivec2{1, -1}
 #define SOUTH_EAST glm::ivec2{1, 1}
@@ -13,6 +12,7 @@
 #define NORTH_EAST glm::ivec2{-1, 1}
 #define WEST glm::ivec2{0, -1}
 #define EAST glm::ivec2{0, 1}
+constexpr static float GRAVITY{ 9.8f };
 
 // these are all systems that are applied on the components of the elements
 template <typename ComponentType>
@@ -48,145 +48,173 @@ void UpdateSpreading(Element* element, int x, int y, Grid& grid);
 void UpdateLifetime(Element* element, int x, int y, Grid& grid);
 float GetRandomFloat(float min, float max);
 
-void UpdateGridElements(Grid& grid)
+void UpdateGridElement(Grid& grid, int x, int y)
 {
-    constexpr float GRAVITY{ 9.8f };
-    for (int x = grid.GetRows() - 1; x >= 0; --x)
+    Element* element = grid.GetElementData(x, y);
+    if (element->hasMoved) return;
+
+    // HANDLE ALL VELOCITY BASED COMPONENTS
+    // Process Gravity
+    if (HasComponent<GravityComp>(element, "Gravity"))
     {
-        // Determine iteration direction based on the frame count
-        int startY = grid.IsEvenFrame() ? 0 : grid.GetColumns() - 1;
-        int endY = grid.IsEvenFrame() ? grid.GetColumns() : -1;
-        int step = grid.IsEvenFrame() ? 1 : -1;
+        auto* comp = TryGetComponent<GravityComp>(element, "Gravity");
+        element->velocity.x += GRAVITY * comp->gravityScale * ServiceLocator::GetSandSimulator().GetFixedTimeStep();
+    }
 
-        for (int y = startY; y != endY; y += step)
-        {
-            if (grid.IsEmpty(x, y)) continue;
+    // HANDLE MODIFIER COMPONENTS
+    // Additional components (flammable, etc.)
+    if (!element->hasSpread)
+    {
+        UpdateSpreading(element, x, y, grid);
+        element->hasSpread = true;
+    }
+    UpdateLifetime(element, x, y, grid);
 
-            Element* element = grid.GetElementData(x, y);
-            if (element->hasMoved) continue;
+    // Cache if the element is Solid, Liquid or Gas to reduce checking it in the Bresenham's algorithm
+    bool isSolid = HasComponent<SolidComp>(element, "Solid");
+    bool isLiquid = false;
+    bool isGas = false;
 
-            // HANDLE ALL VELOCITY BASED COMPONENTS
-            // Process Gravity
-            if (HasComponent<GravityComp>(element, "Gravity"))
+    if (!isSolid)
+    {
+        isLiquid = HasComponent<LiquidComp>(element, "Liquid");
+    }
+    if (!isLiquid)
+    {
+        isGas = HasComponent<GasComp>(element, "Gas");
+    }
+
+    // Calculate the target position based on current velocity
+    glm::ivec2 startPos = { x, y };
+    glm::ivec2 targetPos = {
+        x + static_cast<int>(element->velocity.x), // Vertical movement (rows)
+        y + static_cast<int>(element->velocity.y)  // Vertical movement (columns)
+    };
+
+    // Clamp target position to grid bounds
+    targetPos.x = std::clamp(targetPos.x, 0, grid.GetRows() - 1);
+    targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
+
+    // Use Bresenham's line to check for available positions from start to target
+    glm::ivec2 lastValidPos{ startPos };
+
+    // only do bresenham if velocity is greater or equal  to/than 2
+    if (abs(element->velocity.x) >= 2 || abs(element->velocity.y) >= 2)
+    {
+        BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
             {
-                auto* comp = TryGetComponent<GravityComp>(element, "Gravity");
-                element->velocity.x += GRAVITY * comp->gravityScale * ServiceLocator::GetSandSimulator().GetFixedTimeStep();
-            }
+                glm::ivec2 currentPos{ currentX, currentY };
+                glm::ivec2 direction = currentPos - lastValidPos;
 
-            // HANDLE MODIFIER COMPONENTS
-            // Additional components (flammable, etc.)
-            if (!element->hasSpread)
-            {
-                UpdateSpreading(element, x, y, grid);
-                element->hasSpread = true;
-            }
-            UpdateLifetime(element, x, y, grid);
-
-            // Cache if the element is Solid, Liquid or Gas to reduce checking it in the Bresenham's algorithm
-            bool isSolid = HasComponent<SolidComp>(element, "Solid");
-            bool isLiquid = false;
-            bool isGas = false;
-
-            if (!isSolid)
-            {
-                isLiquid = HasComponent<LiquidComp>(element, "Liquid");
-            }
-            if (!isLiquid)
-            {
-                isGas = HasComponent<GasComp>(element, "Gas");
-            }
-
-            // Calculate the target position based on current velocity
-            glm::ivec2 startPos = { x, y };
-            glm::ivec2 targetPos = {
-                x + static_cast<int>(element->velocity.x), // Vertical movement (rows)
-                y + static_cast<int>(element->velocity.y)  // Vertical movement (columns)
-            };
-
-            // Clamp target position to grid bounds
-            targetPos.x = std::clamp(targetPos.x, 0, grid.GetRows() - 1);
-            targetPos.y = std::clamp(targetPos.y, 0, grid.GetColumns() - 1);
-
-            // Use Bresenham's line to check for available positions from start to target
-			glm::ivec2 lastValidPos{ startPos };
-
-            // only do bresenham if velocity is greater or equal  to/than 2
-            if (abs(element->velocity.x) >= 2 || abs(element->velocity.y) >= 2)
-            {
-				BresenhamLine(startPos, targetPos, [&](int currentX, int currentY)
-					{
-						glm::ivec2 currentPos{ currentX, currentY };
-						glm::ivec2 direction = currentPos - lastValidPos;
-
-						if (!grid.IsWithinBounds(currentX, currentY))
-						{
-							return false; // Stop traversal if out of bounds
-						}
-
-                        if (isSolid)
-                        {
-                            if (CanSolidReachTarget(lastValidPos, currentPos, grid))
-                            {
-                                // If reachable, update lastValidPos to current position
-                                lastValidPos = currentPos;
-                                return true; // Continue traversal
-                            }
-                        }
-                        else if (isLiquid)
-                        {
-                            if (CanLiquidReachTarget(lastValidPos, currentPos, grid))
-                            {
-                                lastValidPos = currentPos;
-                                return true;
-                            }
-                        }
-                        else if (isGas)
-                        {
-                            if (CanGasReachTarget(lastValidPos, currentPos, grid))
-                            {
-                                lastValidPos = currentPos;
-                                return true;
-                            }
-                        }
-
-						return false;
-					});
-
-				// now place element at last valid pos
-				grid.SwapElements(x, y, lastValidPos.x, lastValidPos.y);
-
-                if (x == lastValidPos.x && y == lastValidPos.y)
+                if (!grid.IsWithinBounds(currentX, currentY))
                 {
-                    element->velocity = {};
+                    return false; // Stop traversal if out of bounds
                 }
-            }
-            
-            // now velocity has placed element at correct position
-            // NOW DO OUR FINAL MAIN COMPONENTS
-			if (isSolid)
-			{
-				ProcessSolid(element, lastValidPos.x, lastValidPos.y, grid);
-			}
-			else if (isLiquid)
-			{
-				auto* liquidComp = TryGetComponent<LiquidComp>(element, "Liquid");
-				ProcessLiquid(element, lastValidPos.x, lastValidPos.y, grid, liquidComp->dispersionRate);
-			}
-			else if (isGas)
-			{
-				ProcessGas(element, lastValidPos.x, lastValidPos.y, grid);
-			}
-            element->hasMoved = true;
 
-            // now we process the interaction with other elements
-            // Let particles affect neighbours (heat component, etc)
+                if (isSolid)
+                {
+                    if (CanSolidReachTarget(lastValidPos, currentPos, grid))
+                    {
+                        // If reachable, update lastValidPos to current position
+                        lastValidPos = currentPos;
+                        return true; // Continue traversal
+                    }
+                }
+                else if (isLiquid)
+                {
+                    if (CanLiquidReachTarget(lastValidPos, currentPos, grid))
+                    {
+                        lastValidPos = currentPos;
+                        return true;
+                    }
+                }
+                else if (isGas)
+                {
+                    if (CanGasReachTarget(lastValidPos, currentPos, grid))
+                    {
+                        lastValidPos = currentPos;
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+        // now place element at last valid pos
+        grid.SwapElements(x, y, lastValidPos.x, lastValidPos.y);
+
+        if (x == lastValidPos.x && y == lastValidPos.y)
+        {
+            element->velocity = {};
         }
     }
 
-    // Reset the "hasMoved" flag for all elements
-    for (int x = 0; x < grid.GetRows(); ++x)
+    // now velocity has placed element at correct position
+    // NOW DO OUR FINAL MAIN COMPONENTS
+    if (isSolid)
     {
-        for (int y = 0; y < grid.GetColumns(); ++y)
+        ProcessSolid(element, lastValidPos.x, lastValidPos.y, grid);
+    }
+    else if (isLiquid)
+    {
+        auto* liquidComp = TryGetComponent<LiquidComp>(element, "Liquid");
+        ProcessLiquid(element, lastValidPos.x, lastValidPos.y, grid, liquidComp->dispersionRate);
+    }
+    else if (isGas)
+    {
+        ProcessGas(element, lastValidPos.x, lastValidPos.y, grid);
+    }
+    element->hasMoved = true;
+}
+
+void UpdateGridElements(Grid& grid)
+{
+    const int CHUNK_SIZE = grid.GetChunkSize();
+    const int ROWS = grid.GetRows();
+    const int COLS = grid.GetColumns();
+    const int CHUNKS_X = grid.GetNumChunksX();
+    const int CHUNKS_Y = grid.GetNumChunksY();
+
+    for (int chunkX{ CHUNKS_X - 1 }; chunkX >= 0; --chunkX)
+    {
+        for (int chunkY{}; chunkY < CHUNKS_Y; ++chunkY)
+        {
+            //if (!grid.IsChunkDirty(chunkX, chunkY)) continue;
+            if (!grid.m_CurrentDirtyChunks[chunkX][chunkY])
+                continue;
+
+            int startX = chunkX * CHUNK_SIZE;
+            int endX = std::min(startX + CHUNK_SIZE, ROWS);
+
+            for (int x{ endX - 1 }; x >= startX; --x)
+            {
+                int startY = grid.IsEvenFrame() 
+                    ? chunkY * CHUNK_SIZE :
+                    std::min(chunkY * CHUNK_SIZE + CHUNK_SIZE, COLS) - 1;
+                int endY = grid.IsEvenFrame()
+                    ? std::min(startY + CHUNK_SIZE, COLS):
+                    chunkY * CHUNK_SIZE - 1;
+
+                int step = grid.IsEvenFrame() ? 1 : -1;
+
+                for (int y{ startY }; y != endY; y += step)
+                {
+                    if (grid.IsEmpty(x, y)) continue;
+                    UpdateGridElement(grid, x, y);
+                }
+            }
+        }
+    }
+
+    std::swap(grid.m_CurrentDirtyChunks, grid.m_NextDirtyChunks);
+
+    grid.ResetDirtyChunks();
+
+
+    // Reset the "hasMoved" flag for all elements
+    for (int x = 0; x < ROWS; ++x)
+    {
+        for (int y = 0; y < COLS; ++y)
         {
             Element* element = grid.GetElementData(x, y);
             if (!element) continue;
@@ -655,6 +683,7 @@ void UpdateLifetime(Element* element, int x, int y, Grid& grid)
     if (!lifetimeComp)
         return;
 
+    grid.MarkChunkAsDirty(x, y);
     element->lifeTime -= ServiceLocator::GetSandSimulator().GetFixedTimeStep();
     if (element->lifeTime <= 0)
     {

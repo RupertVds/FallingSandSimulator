@@ -47,6 +47,15 @@ public:
 	int GetRows() const { return m_GridInfo.rows; };
 	int GetColumns() const { return m_GridInfo.columns; };
 
+	int GetNumChunksX() const { return m_NumChunksX; };
+	int GetNumChunksY() const { return m_NumChunksY; };
+	int GetChunkSize() const { return m_ChunkSize; };
+
+	bool IsChunkDirty(int chunkX, int chunkY);
+	void MarkChunkAsDirty(int x, int y);
+	void UnmarkChunkAsDirty(int x, int y);
+	void ResetDirtyChunks();
+
 	inline ElementID GetElementID(int x, int y) const;
 	inline ElementID GetElementID(const glm::ivec2& pos) const;
 	inline Element* GetElementData(int x, int y) const;
@@ -61,8 +70,16 @@ public:
 	void MoveElement(int x, int y, int newX, int newY);
 	void SwapElements(int x, int y, int newX, int newY);
 	void ClearGrid();
+	mutable std::vector<std::vector<bool>> m_CurrentDirtyChunks;
+	mutable std::vector<std::vector<bool>> m_NextDirtyChunks;
 private:
 	GridInfo m_GridInfo{};
+
+	const int m_ChunkSize{ 32 };
+
+
+	int m_NumChunksX{};
+	int m_NumChunksY{};
 
 	std::vector<std::vector<ElementID>> m_Elements{};
 	std::unique_ptr<ElementRegistry> m_pElementRegistry{};
