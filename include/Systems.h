@@ -210,23 +210,35 @@ void UpdateGridElements(Grid& grid)
 
     grid.ResetDirtyChunks();
 
-
-    // Reset the "hasMoved" flag for all elements
-    for (int x = 0; x < ROWS; ++x)
+    for (int chunkX = 0; chunkX < CHUNKS_X; ++chunkX)
     {
-        for (int y = 0; y < COLS; ++y)
+        for (int chunkY = 0; chunkY < CHUNKS_Y; ++chunkY)
         {
-            Element* element = grid.GetElementData(x, y);
-            if (!element) continue;
-
-            if (element->toBeDestroyed)
-            {
-                grid.RemoveElementAt(x, y);
+            if (!grid.m_CurrentDirtyChunks[chunkX][chunkY])
                 continue;
-            }
 
-            element->hasMoved = false;
-            element->hasSpread = false;
+            int startX = chunkX * CHUNK_SIZE;
+            int endX = std::min(startX + CHUNK_SIZE, ROWS);
+            int startY = chunkY * CHUNK_SIZE;
+            int endY = std::min(startY + CHUNK_SIZE, COLS);
+
+            for (int x = startX; x < endX; ++x)
+            {
+                for (int y = startY; y < endY; ++y)
+                {
+                    Element* element = grid.GetElementData(x, y);
+                    if (!element) continue;
+
+                    if (element->toBeDestroyed)
+                    {
+                        grid.RemoveElementAt(x, y);
+                        continue;
+                    }
+
+                    element->hasMoved = false;
+                    element->hasSpread = false;
+                }
+            }
         }
     }
 }

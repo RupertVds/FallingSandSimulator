@@ -459,9 +459,8 @@ void Grid::RenderGrid(Window* window) const
 void Grid::RenderElements(Window* window) const
 {
 	static SDL_Texture* gridTexture = nullptr;
-	//static bool textureNeedsUpdate = true;
 
-	// create texture if no texture
+	// Create texture once if it doesn't exist
 	if (!gridTexture)
 	{
 		gridTexture = SDL_CreateTexture(
@@ -471,18 +470,34 @@ void Grid::RenderElements(Window* window) const
 			this->GetColumns(),
 			this->GetRows()
 		);
-		// textureNeedsUpdate = true;
 	}
 
-	//if (textureNeedsUpdate)
+	// Check if any chunk is dirty
+	bool hasDirtyChunks = false;
+	for (int chunkX = 0; chunkX < m_NumChunksX; ++chunkX)
+	{
+		for (int chunkY = 0; chunkY < m_NumChunksY; ++chunkY)
+		{
+			if (m_CurrentDirtyChunks[chunkX][chunkY])
+			{
+				hasDirtyChunks = true;
+				break;
+			}
+		}
+		if (hasDirtyChunks) break;
+	}
+
+	// Update the texture only if there are dirty chunks
+	if (hasDirtyChunks)
 	{
 		void* pixels;
 		int pitch;
 		SDL_LockTexture(gridTexture, nullptr, &pixels, &pitch);
 
 		Uint32* pixelData = static_cast<Uint32*>(pixels);
+		const int PIXELS_PER_ROW = pitch / 4; // Uint32 (4 bytes per pixel)
 
-
+		// Update all pixels in the grid
 		for (int x = 0; x < this->GetRows(); ++x)
 		{
 			for (int y = 0; y < this->GetColumns(); ++y)
@@ -492,13 +507,11 @@ void Grid::RenderElements(Window* window) const
 					const Element* element = GetElementData(x, y);
 					uint32_t baseColor = element->definition->color;
 
-					// apply element's tint to color
-					// Extract RGB channels
+					// Apply element's tint to color
 					uint8_t r = (baseColor >> 16) & 0xFF;
 					uint8_t g = (baseColor >> 8) & 0xFF;
 					uint8_t b = baseColor & 0xFF;
 
-					// Adjust channels based on tint
 					auto adjustColor = [tint = element->tint](uint8_t channel) -> uint8_t {
 						int newChannel = std::clamp(static_cast<int>(channel) + tint, 0, 255);
 						return static_cast<uint8_t>(newChannel);
@@ -508,31 +521,29 @@ void Grid::RenderElements(Window* window) const
 					g = adjustColor(g);
 					b = adjustColor(b);
 
-					// Combine adjusted channels into a single color
 					uint32_t color = (r << 16) | (g << 8) | b;
 
-
-					// Set the corresponding "pixel" in the texture
-					pixelData[x * (pitch / 4) + y] = color;
+					// Update pixel data
+					pixelData[x * PIXELS_PER_ROW + y] = color;
 				}
 				else
 				{
-					// Set empty cells to a background color (optional)
-					pixelData[x * (pitch / 4) + y] = 0x1A1A1A; // Black with full opacity
+					// Set empty cells to the background color
+					pixelData[x * PIXELS_PER_ROW + y] = 0x1A1A1A; // Black with full opacity
 				}
 			}
 		}
 
 		SDL_UnlockTexture(gridTexture);
-
-		//textureNeedsUpdate = false;
 	}
 
+	// Render the texture to the screen (always)
 	SDL_Rect destRect = {
 		m_GridInfo.pos.x,
 		m_GridInfo.pos.y,
 		m_GridInfo.cellSize * this->GetColumns(),
-		m_GridInfo.cellSize * this->GetRows() };
+		m_GridInfo.cellSize * this->GetRows()
+	};
 
 	SDL_RenderCopy(window->GetSDLRenderer(), gridTexture, nullptr, &destRect);
 }
