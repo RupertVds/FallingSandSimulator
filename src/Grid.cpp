@@ -15,7 +15,7 @@ Grid::Grid(const GridInfo& gridInfo)
 	m_Elements.resize(gridInfo.rows, std::vector<ElementID>(gridInfo.columns, EMPTY_CELL));
 	m_NumChunksX = (m_GridInfo.rows + m_ChunkSize - 1) / m_ChunkSize;
 	m_NumChunksY = (m_GridInfo.columns + m_ChunkSize - 1) / m_ChunkSize;
-	m_CurrentDirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
+	m_CurrentDirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, true));
 	m_NextDirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
 	//m_DirtyChunks = std::vector<std::vector<bool>>(m_NumChunksX, std::vector<bool>(m_NumChunksY, false));
 
@@ -124,20 +124,6 @@ void Grid::UpdateInput()
 			--m_BrushSize;
 		}
 	}
-	
-
-	if (InputManager::GetInstance().IsKeyPressed(SDL_SCANCODE_DELETE))
-	{
-		m_BrushOverride = !m_BrushOverride;
-		if (m_BrushOverride)
-		{
-			std::cout << "Brush Overriding is ON!\n";
-		}
-		else
-		{
-			std::cout << "Brush Overriding is OFF!\n";
-		}
-	}
 
 	m_PreviousGridMousePos = gridMousePos;
 }
@@ -159,25 +145,6 @@ void Grid::Render(Window* window)
 	RenderElements(window);
 	RenderGrid(window);
 	RenderBrush(window);
-
-	ImGui::Begin("Clear Grid", nullptr, 
-		ImGuiWindowFlags_NoBackground | 
-		ImGuiWindowFlags_NoDocking | 
-		ImGuiWindowFlags_NoTitleBar |
-		ImGuiWindowFlags_NoMove |
-		ImGuiWindowFlags_NoCollapse |
-		ImGuiWindowFlags_NoResize |
-		ImGuiWindowFlags_NoScrollbar
-	);
-
-	ImGui::SetWindowPos("Clear Grid", { 20, 625 });
-
-	if (ImGui::Button("Clear Grid", { 100, 25 }))
-	{
-		ClearGrid();
-	}
-
-	ImGui::End();
 
 	ImGui::Begin("Element Selector");
 	ImGui::SetWindowPos("Element Selector", { 1050, 20 });
@@ -207,8 +174,8 @@ void Grid::Render(Window* window)
 	ImGui::End();
 
 	// New Element Creator
-	ImGui::Begin("Create New Element");
-	ImGui::SetWindowPos("Create New Element", { 1300, 20 });
+	ImGui::Begin("Create New Element", nullptr, ImGuiWindowFlags_None);
+	ImGui::SetWindowPos("Create New Element", { 1260, 20 });
 
 	static int elementCount = 1;
 
@@ -422,18 +389,33 @@ void Grid::RenderBrush(Window* window) const
 	}
 }
 
-void Grid::RenderGrid(Window* window) const
+void Grid::RenderGrid(Window* window)
 {
-	// Draw chunk boundaries
-	SDL_SetRenderDrawColor(window->GetSDLRenderer(), 0, 128, 0, 255);
+	static bool m_ShowDirtyChunks{};
+	static bool m_ShowChunks{};
 
-	for (int chunkX = 0; chunkX < m_NumChunksX; ++chunkX)
+	ImGui::Begin("Debug");
+
+	ImGui::SetWindowPos("Debug", { 20, 625 });
+
+	if (ImGui::Button("Clear Grid"))
 	{
-		for (int chunkY = 0; chunkY < m_NumChunksY; ++chunkY)
+		ClearGrid();
+	}
+
+	ImGui::Checkbox("Show Chunks", &m_ShowChunks);
+	ImGui::Checkbox("Show Dirty Chunks", &m_ShowDirtyChunks);
+	ImGui::Checkbox("Brush Overriding", &m_BrushOverride);
+
+	ImGui::End();
+
+	if (m_ShowChunks)
+	{
+		for (int chunkX = 0; chunkX < m_NumChunksX; ++chunkX)
 		{
-			if (m_CurrentDirtyChunks[chunkX][chunkY])
+			for (int chunkY = 0; chunkY < m_NumChunksY; ++chunkY)
 			{
-				SDL_SetRenderDrawColor(window->GetSDLRenderer(), 255, 255, 0, 255);
+				SDL_SetRenderDrawColor(window->GetSDLRenderer(), 0, 150, 0, 255);
 				int startX = m_GridInfo.pos.x + chunkX * m_ChunkSize * m_GridInfo.cellSize;
 				int startY = m_GridInfo.pos.y + chunkY * m_ChunkSize * m_GridInfo.cellSize;
 				int width = m_ChunkSize * m_GridInfo.cellSize;
@@ -441,6 +423,27 @@ void Grid::RenderGrid(Window* window) const
 
 				SDL_Rect chunkBounds = { startY, startX, width, height };
 				SDL_RenderDrawRect(window->GetSDLRenderer(), &chunkBounds);
+			}
+		}
+	}
+
+	if (m_ShowDirtyChunks)
+	{
+		for (int chunkX = 0; chunkX < m_NumChunksX; ++chunkX)
+		{
+			for (int chunkY = 0; chunkY < m_NumChunksY; ++chunkY)
+			{
+				if (m_CurrentDirtyChunks[chunkX][chunkY])
+				{
+					SDL_SetRenderDrawColor(window->GetSDLRenderer(), 150, 150, 0, 255);
+					int startX = m_GridInfo.pos.x + chunkX * m_ChunkSize * m_GridInfo.cellSize;
+					int startY = m_GridInfo.pos.y + chunkY * m_ChunkSize * m_GridInfo.cellSize;
+					int width = m_ChunkSize * m_GridInfo.cellSize;
+					int height = m_ChunkSize * m_GridInfo.cellSize;
+
+					SDL_Rect chunkBounds = { startY, startX, width, height };
+					SDL_RenderDrawRect(window->GetSDLRenderer(), &chunkBounds);
+				}
 			}
 		}
 	}
@@ -628,13 +631,6 @@ inline Element* Grid::GetElementData(int x, int y) const
 {
 	ElementID id = GetElementID(x, y);
 	if (id == EMPTY_CELL) return nullptr;
-	//int chunkX = x / m_ChunkSize;
-	//int chunkY = y / m_ChunkSize;
-
-	//if (chunkX >= 0 && chunkX < m_NumChunksX && chunkY >= 0 && chunkY < m_NumChunksY)
-	//{
-	//	m_NextDirtyChunks[chunkX][chunkY] = true;
-	//}
 	return m_pElementRegistry->GetElementData(id);
 }
 

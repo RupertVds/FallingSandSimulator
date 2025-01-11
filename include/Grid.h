@@ -34,7 +34,7 @@ public:
 	void UpdateElements();
 	void UpdateInput();
 
-	void RenderGrid(Window* window) const;
+	void RenderGrid(Window* window);
 	void RenderElements(Window* window) const;
 	void RenderBrush(Window* window) const;
 
@@ -87,7 +87,7 @@ private:
 	// Brush Settings
 	int m_BrushSize{ 4 };
 	glm::vec3 m_BrushColor{ 0.f, 100.f, 0.f };
-	bool m_BrushOverride{};
+	bool m_BrushOverride{true};
 	const float m_SpawnBrushTime{ 1 };
 	float m_SpawnBrushTimer{};
 

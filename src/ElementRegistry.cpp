@@ -50,6 +50,15 @@ ElementRegistry::ElementRegistry()
     }
     };
     m_ElementTypes["Fire"] = fire;
+    //#ABF0E5
+    ElementDefinition snow{ "Snow", 0xE0F6F8,
+    {
+        {"Solid", SolidComp{1.f}},
+        {"Lifetime", LifeTimeComp{6.f, 10.f, "Water"}},
+        {"Gravity", GravityComp{2.f}}
+    }
+    };
+    m_ElementTypes["Snow"] = snow;
 }
 
 ElementID ElementRegistry::AddElement(const std::string& elementTypeName)
